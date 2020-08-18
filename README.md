@@ -1,3 +1,5 @@
+![Build](https://github.com/danielepanozzo/cg/workflows/Build/badge.svg)
+
 # Graduate Computer Graphics, CSCI-GA 2270-001 Fall 2020
 
 ### Course Instructor
