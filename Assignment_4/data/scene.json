@@ -1,0 +1,94 @@
+{
+	"Scene":
+	{
+		"Background": [0.3, 0.3, 0.9],
+		"Ambient": [0.2, 0.2, 0.2]
+	},
+
+	"Camera":
+	{
+		"IsPerspective": true,
+		"Position": [0, 0, 2],
+		"FieldOfView": 0.7854,
+		"FocalLength": 2.0,
+		"LensRadius": 0.08
+	},
+	"Materials": [
+		{
+			"Ambient": [0.0, 0.5, 0.0],
+			"Diffuse": [0.5, 0.5, 0.5],
+			"Specular": [0.2, 0.2, 0.2],
+			"Mirror": [0.7, 0.7, 0.7],
+			"Refraction": [0.0, 0.0, 0.0],
+			"RefractionIndex": 1.0,
+			"Shininess": 256.0
+		}
+	],
+	"Lights": [
+		{
+			"Position": [8, 8, 0],
+			"Color": [16, 16, 16]
+		},
+		{
+			"Position": [6, -8, 0],
+			"Color": [16, 16, 16]
+		},
+		{
+			"Position": [4, 8, 0],
+			"Color": [16, 16, 16]
+		},
+		{
+			"Position": [2, -8, 0],
+			"Color": [16, 16, 16]
+		},
+		{
+			"Position": [0, 8, 0],
+			"Color": [16, 16, 16]
+		},
+		{
+			"Position": [-2, -8, 0],
+			"Color": [16, 16, 16]
+		},
+		{
+			"Position": [-4, 8, 0],
+			"Color": [16, 16, 16]
+		}
+	],
+	"Objects": [
+		{
+			"Type": "Mesh",
+			"Material": 0,
+			"Path": "dragon.off"
+		},
+		{
+			"Type": "Sphere",
+			"Material": 0,
+			"Position": [5, 0, 0],
+			"Radius": 1
+		},
+		{
+			"Type": "Sphere",
+			"Material": 0,
+			"Position": [4, 0.1, 1],
+			"Radius": 0.5
+		},
+		{
+			"Type": "Sphere",
+			"Material": 0,
+			"Position": [-2, 0.4, 1],
+			"Radius": 0.5
+		},
+		{
+			"Type": "Sphere",
+			"Material": 0,
+			"Position": [-5, 0.8, -1],
+			"Radius": 0.5
+		},
+		{
+			"Type": "Sphere",
+			"Material": 0,
+			"Position": [-8, 1.6, 1],
+			"Radius": 0.5
+		}
+	]
+}
