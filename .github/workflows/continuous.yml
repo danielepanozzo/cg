@@ -1,0 +1,93 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+
+jobs:
+  ####################
+  # Linux / macOS
+  ####################
+
+  Unix:
+    name: ${{ matrix.name }} (${{ matrix.config }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04, macos-latest]
+        config: [Debug,Release]
+        include:
+          - os: macos-latest
+            name: macOS
+          - os: ubuntu-18.04
+            name: Linux
+    env:
+      #NUM_THREADS: 1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 10
+
+      - name: Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+            sudo apt-get install \
+            libblas-dev \
+            libglu1-mesa-dev \
+            liblapack-dev \
+            xorg-dev
+
+      - name: Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install boost
+
+      - name: Configure
+        run: |
+          cd Assignment_1
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} 
+
+      - name: Build
+        run: cd Assignment_1; cd build; make -j2
+
+  ####################
+  # Windows
+  ####################
+
+  Windows:
+    runs-on: windows-2019
+    env:
+      CC: cl.exe
+      CXX: cl.exe
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Debug,Release]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 10
+      - uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Set env
+        run: |
+          echo "::set-env name=appdata::$($env:LOCALAPPDATA)"
+
+      - name: Configure and build
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake -G Ninja ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S Assignment_1
+          cmake --build build
+
