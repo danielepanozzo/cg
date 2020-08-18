@@ -25,7 +25,7 @@ jobs:
             name: macOS
           - os: ubuntu-18.04
             name: Linux
-    env:
+    #env:
       #NUM_THREADS: 1
     steps:
       - name: Checkout repository
@@ -46,16 +46,14 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install boost
 
-      - name: Configure
+      - name: Configure and Build
         run: |
           cd Assignment_1
           mkdir -p build
           cd build
           cmake .. \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} 
-
-      - name: Build
-        run: cd Assignment_1; cd build; make -j2
+          make -j2
 
   ####################
   # Windows
