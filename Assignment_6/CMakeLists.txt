@@ -18,9 +18,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC SDL_MAIN_HANDLED)
 add_subdirectory(${THIRD_PARTY_DIR}/SDL ${CMAKE_BINARY_DIR}/SDL-build)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2-static)
 
-if (WIN32)
+if(WIN32)
     target_link_libraries(${PROJECT_NAME} PUBLIC vcruntime)
-endif
+endif()
 
 ################################################################################
 
