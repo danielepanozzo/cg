@@ -44,9 +44,54 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install boost
 
-      - name: Configure and Build
+      - name: Assignment_1
         run: |
           cd Assignment_1
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} 
+          make -j2
+
+      - name: Assignment_2
+        run: |
+          cd Assignment_2
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} 
+          make -j2
+
+      - name: Assignment_3
+        run: |
+          cd Assignment_3
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} 
+          make -j2
+
+      - name: Assignment_4
+        run: |
+          cd Assignment_4
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} 
+          make -j2
+
+      - name: Assignment_5
+        run: |
+          cd Assignment_5
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} 
+          make -j2
+
+      - name: Assignment_6
+        run: |
+          cd Assignment_6
           mkdir -p build
           cd build
           cmake .. \
@@ -66,6 +111,7 @@ jobs:
       fail-fast: false
       matrix:
         config: [Debug,Release]
+        assignment: [Assignment_1,Assignment_2,Assignment_3,Assignment_4,Assignment_5,Assignment_6]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v1
@@ -77,7 +123,7 @@ jobs:
         run: |
           echo "::set-env name=appdata::$($env:LOCALAPPDATA)"
 
-      - name: Configure and build
+      - name: Assignment_1
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
@@ -87,3 +133,52 @@ jobs:
             -S Assignment_1
           cmake --build build
 
+      - name: Assignment_2
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake -G Ninja ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S Assignment_2
+          cmake --build build
+
+      - name: Assignment_3
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake -G Ninja ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S Assignment_3
+          cmake --build build
+
+      - name: Assignment_4
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake -G Ninja ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S Assignment_4
+          cmake --build build
+
+      - name: Assignment_5
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake -G Ninja ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S Assignment_5
+          cmake --build build
+
+      - name: Assignment_6
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake -G Ninja ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S Assignment_6
+          cmake --build build
