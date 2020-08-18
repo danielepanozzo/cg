@@ -11,7 +11,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION // Do not include this line twice in your project!
 #include "stb_image_write.h"
 
-int main(int argc, char const *argv[])
+int main()
 {
     int width = 500;
     int height = 500;
