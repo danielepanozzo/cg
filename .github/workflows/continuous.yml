@@ -111,7 +111,6 @@ jobs:
       fail-fast: false
       matrix:
         config: [Debug,Release]
-        assignment: [Assignment_1,Assignment_2,Assignment_3,Assignment_4,Assignment_5,Assignment_6]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v1
@@ -129,9 +128,9 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -B build ^
+            -B build1 ^
             -S Assignment_1
-          cmake --build build
+          cmake --build build1
 
       - name: Assignment_2
         shell: cmd
@@ -139,9 +138,9 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -B build ^
+            -B build2 ^
             -S Assignment_2
-          cmake --build build
+          cmake --build build2
 
       - name: Assignment_3
         shell: cmd
@@ -149,9 +148,9 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -B build ^
+            -B build3 ^
             -S Assignment_3
-          cmake --build build
+          cmake --build build3
 
       - name: Assignment_4
         shell: cmd
@@ -159,9 +158,9 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -B build ^
+            -B build4 ^
             -S Assignment_4
-          cmake --build build
+          cmake --build build4
 
       - name: Assignment_5
         shell: cmd
@@ -169,9 +168,9 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -B build ^
+            -B build5 ^
             -S Assignment_5
-          cmake --build build
+          cmake --build build5
 
       - name: Assignment_6
         shell: cmd
@@ -179,6 +178,6 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -B build ^
+            -B build6 ^
             -S Assignment_6
-          cmake --build build
+          cmake --build build6
