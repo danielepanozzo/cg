@@ -50,11 +50,50 @@ ISBN 9781482229394
 
 ## Assignments
 
-In this course there will be 4 mandatory coding assignments (including a final project) that will account for 70% of the grade. There will also be 4 optional assignments, for a total of 20% extra points.
+In this course there will be 4 mandatory coding assignments that will account for 70% of the grade. There will also be 2 optional assignments, for a total of 15% extra points.
 
 ## Course Notes:
 
-The course notes will be adjusted along the way.
+The course notes will be adjusted along the way. The order is indicative and might change.
+
+[01 - Introduction](https://www.icloud.com/keynote/0Bi3HXvG70bpshIbt1t9PnGmw#01_-_Introduction_to_Computer_Graphics)
+
+[02 - Basic Linear Algebra](https://www.icloud.com/keynote/0bR6rH_qhMGyack3AvOLN9KpA#02_-_Basic_Linear_Algebra)
+
+[03 - Introduction to C++](https://www.icloud.com/keynote/0g2wBvEMQe7c4KRNidmCT44rQ#03_-_C++)
+
+[04 - Images](https://www.icloud.com/keynote/078471RTY56oFkHbVjhquf4Lg#04_-_Images)
+
+[05 - Ray Tracing](https://www.icloud.com/keynote/0Xt7leP_xqOA9pEE24U9-q5vg#05_-_Ray_Tracing)
+
+[06 - Spatial Data Structures](https://www.icloud.com/keynote/0WGDZa8VZoXxqlLSq2gp_G_Rw#06_-_Spatial_Data_Structures)
+
+[07 - Procedural Synthesis](https://www.icloud.com/keynote/0RV7ZnHhuQCWAHlj29VpmmLKQ#07_-_Procedural_Synthesis)
+
+[08 - 2D Transformations](https://www.icloud.com/keynote/0hdbFFSx6TrJSzmICBf4Yjo2g#08_-_2D_Transformations)
+
+[09 - Viewing Transformations](https://www.icloud.com/keynote/0DlviF0tU_vb8pn-w6qoN3OaA#09_-_Viewing_Transformations)
+
+[10 - Rasterization - Theory](https://www.icloud.com/keynote/0gwK2pQbGYorL7xXpoAlb8xog#10_-_Rasterization_-_Theory)
+
+[11 - Rasterization - Implementation](https://www.icloud.com/keynote/0WuGGx7-YzpkpxN5lyMvQyHew#11_-_Rasterization_-_Implementation)
+
+[12 - Perspective Projection](https://www.icloud.com/keynote/0qLSBn6y3y4Fn-tvY_ZOtKlFQ#12_-_Perspective_Projection)
+
+[13 - Texture Mapping](https://www.icloud.com/keynote/0DYWwAzDUEQC5AMmDMIrFyI0w#13_-_Texture_Mapping)
+
+[14 - Parametrization](https://www.icloud.com/keynote/06w_Cnj7E81JLB76Pl1tSjiqg#14_-_Parametrization)
+
+[15 - Designing Interpolating Curves](https://www.icloud.com/keynote/0ztivLSI82_YZgJLkU3MsemQQ#15_-_Designing_Interpolating_Curves)
+
+[16 - Designing Approximating Curves](https://www.icloud.com/keynote/0KOu9icbYhEryoNeTVsjftmRQ#16_-_Designing_Approximating_Curves)
+
+[17 - Designing Surfaces](https://www.icloud.com/keynote/0fjx3PAnYzwWgrgiIXEJI7K6g#17_-_Designing_Surfaces)
+
+[18 - Mesh Deformation](https://www.icloud.com/keynote/0i9XXnime7phhNqYRM1m-a7FA#18_-_Mesh_Deformation)
+
+[19 - Mesh Data Structures](https://www.icloud.com/keynote/07fbGW6rsRjxWrmTu3M8kDgvA#19_-_Mesh_Data_Structures)
+
 
 ## Assignments
 
