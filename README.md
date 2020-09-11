@@ -25,8 +25,8 @@ Office Hours:
 * **Mondays**  10AM-11AM, Zoom 
 * **Tuesdays** 11AM-noon, Zoom 
 * **Wednesdays** noon-1PM, Zoom 
-* **Thursdays** 2PM-3PM, Zoom 
-* **Fridays** 3PM-4PM, Zoom 
+* **Thursdays** 3PM-4PM, Zoom 
+* **Fridays** 5PM-6PM, Zoom 
 
 ### Lectures:
 Mondays 7:10pm - 9pm, Zoom
