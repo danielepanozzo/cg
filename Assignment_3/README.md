@@ -66,7 +66,7 @@ To implement a depth of field effect, you will need average the contribution of 
 1. Fill the starter code to implement depth of field.
 2. Modify the input scene to move the rightmost sphere more into focus. Experiment with different settings of this effect. 
 
-Ex.4: Animation
+Ex.5: Animation
 --------------------
 
 Generate an animation by moving or changing size/properties of the object in the scene and exporting a series of images. You can export a sequence of pngs and look at them in sequence, or directly export an animated gif file by including `#include <gif.h>` and using the following code snipped:
