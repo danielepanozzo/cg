@@ -50,7 +50,7 @@ The direction of the reflected has been given in class, and can be expressed as 
 2. Fill the starter code to implement reflected and refracted rays. Don't forget to decrease the counter to limit the maximum number of 'bounce' a ray can make, and be sure to check for total internal reflection when implementing refraction (it may happens that there is no refracted ray if the incident direction is too low).
 
 
-Ex.3: Depth of Field
+Ex.4: Depth of Field
 --------------------
 
 ![](img/dof.png?raw=true)
