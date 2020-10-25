@@ -19,7 +19,7 @@ In this exercise you will implement the ray-tracing of a triangle mesh. Without 
 
 ### Tasks
 
-1. Fill the starting code to complete the function implementing the intersection of a ray and a triangle. This should be similar to the code you developed for assignment 1.
+1. Fill the starting code to complete the function implementing the intersection of a ray and a triangle. This should be similar to the code you developed for Assignment 2.
 2. Fill the starting code to implement the ray-tracing of a triangle mesh.
 
 Ex.2: AABB Trees
