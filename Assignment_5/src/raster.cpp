@@ -20,10 +20,10 @@ void rasterize_triangle(const Program& program, const UniformAttributes& uniform
 		int uy = std::ceil(p.col(1).maxCoeff());
 
 		// Clamp to framebuffer
-		lx = std::max(lx,int(0));
-		ly = std::max(ly,int(0));
-		ux = std::min(ux,int(frameBuffer.rows()-1));
-		uy = std::min(uy,int(frameBuffer.cols()-1));
+		lx = std::min(std::max(lx,int(0)),int(frameBuffer.rows()-1));
+		ly = std::min(std::max(ly,int(0)),int(frameBuffer.cols()-1));
+		ux = std::min(std::max(ux,int(0)),int(frameBuffer.rows()-1));
+		uy = std::min(std::max(uy,int(0)),int(frameBuffer.cols()-1));
 
 		// Build the implicit triangle representation
 		Eigen::Matrix3f A;
@@ -86,10 +86,10 @@ void rasterize_line(const Program& program, const UniformAttributes& uniform, co
 		int uy = std::ceil(p.col(1).maxCoeff()+line_thickness);
 
 		// Clamp to framebuffer
-		lx = std::max(lx,int(0));
-		ly = std::max(ly,int(0));
-		ux = std::min(ux,int(frameBuffer.rows()-1));
-		uy = std::min(uy,int(frameBuffer.cols()-1));
+		lx = std::min(std::max(lx,int(0)),int(frameBuffer.rows()-1));
+		ly = std::min(std::max(ly,int(0)),int(frameBuffer.cols()-1));
+		ux = std::min(std::max(ux,int(0)),int(frameBuffer.rows()-1));
+		uy = std::min(std::max(uy,int(0)),int(frameBuffer.cols()-1));
 
 		// We only need the 2d coordinates of the endpoints of the line
 		Eigen::Vector2f l1(p(0,0),p(0,1));
