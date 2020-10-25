@@ -75,6 +75,7 @@ int main()
 	rasterize_triangles(program,uniform,vertices,frameBuffer);
 
 	vector<uint8_t> image;
+	frameBuffer = scale_down_4x(frameBuffer);
 	framebuffer_to_uint8(frameBuffer,image);
 	stbi_write_png("triangle.png", frameBuffer.rows(), frameBuffer.cols(), 4, image.data(), frameBuffer.rows()*4);
 	
