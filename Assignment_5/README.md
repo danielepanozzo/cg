@@ -12,7 +12,7 @@ Have a look at the [Getting Started](http://eigen.tuxfamily.org/dox/GettingStart
 
 Follow the instructions on the [general instructions page](../RULES.md) to set up what you need for the assignment.
 
-**Note**: For the purpose of exercises 1 to 4, the world space, camera space, and canonical viewing volume will be one and the same. Camera and projection matrices can be optionally implemented as part of exercise 5.
+**Note**: For the purpose of exercises 1 to 2, the world space, camera space, and canonical viewing volume will be one and the same. 
 
 
 Ex.1: Load and Render a 3D model
