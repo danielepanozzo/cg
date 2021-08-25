@@ -1,6 +1,6 @@
 ![Build](https://github.com/danielepanozzo/cg/workflows/Build/badge.svg)
 
-# Graduate Computer Graphics, CSCI-GA 2270-001 Fall 2020
+# Graduate Computer Graphics, CSCI-GA 2270-001 Fall 2021
 
 ### Course Instructor
 *Daniele Panozzo*
@@ -13,23 +13,21 @@ Phone: 212 998 3208
 
 URL: [http://cs.nyu.edu/~panozzo/](http://cs.nyu.edu/~panozzo/)
 
-Office Hours: 
-* **Mondays**, 5pm-6pm and by appointment, 60 5th Ave, 5th Floor, Room 504
-* **Wednesdays**, 10am-11am and by appointment, 60 5th Ave, 5th Floor, Room 504
-
 ### Assistants
-*Leyi Zhu*
-[leyi@nyu.edu](mailto:leyi@nyu.edu)
+*Arvi Gjoka*
+[arvi.gjoka@nyu.edu](mailto:arvi.gjoka@nyu.edu)
+*Zizhou Wang*
+[zizhou@nyu.edu](mailto:zizhou@nyu.edu)
 
 Office Hours: 
-* **Mondays**  10AM-11AM, Zoom 
+* **Mondays**  10AM-11AM, Zoom (or in person if requested)
 * **Tuesdays** 11AM-noon, Zoom 
 * **Wednesdays** noon-1PM, Zoom 
 * **Thursdays** 3PM-4PM, Zoom 
 * **Fridays** 5PM-6PM, Zoom 
 
 ### Lectures:
-Mondays 7:10pm - 9pm, Zoom
+Mondays 7:10pm - 9pm, Silv 204
 
 ## Course Description
 
