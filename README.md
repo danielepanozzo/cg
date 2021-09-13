@@ -20,7 +20,7 @@ URL: [http://cs.nyu.edu/~panozzo/](http://cs.nyu.edu/~panozzo/)
 [zizhou@nyu.edu](mailto:zizhou@nyu.edu)
 
 Office Hours: 
-* **Mondays**  10AM-11AM, Zoom (or in person if requested)
+* **Mondays**  5PM-6PM, Zoom (or in person if requested by email)
 * **Tuesdays** 11AM-noon, Zoom 
 * **Wednesdays** noon-1PM, Zoom 
 * **Thursdays** 3PM-4PM, Zoom 
