@@ -27,7 +27,7 @@ Office Hours:
 * **Fridays** 5PM-6PM, Zoom 
 
 ### Lectures:
-Mondays 7:10pm - 9pm, Silv 204
+Mondays 7:10pm - 9pm, Silv 207
 
 ## Course Description
 
