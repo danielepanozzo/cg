@@ -16,7 +16,7 @@ URL: [http://cs.nyu.edu/~panozzo/](http://cs.nyu.edu/~panozzo/)
 ### Assistants
 *Arvi Gjoka*
 [arvi.gjoka@nyu.edu](mailto:arvi.gjoka@nyu.edu)
-*Zizhou Wang*
+*Zizhou Huang*
 [zizhou@nyu.edu](mailto:zizhou@nyu.edu)
 
 Office Hours: 
