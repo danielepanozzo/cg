@@ -50,6 +50,9 @@ ISBN 9781482229394
 
 In this course there will be 4 mandatory coding assignments that will account for 70% of the grade. There will also be 2 optional assignments, for a total of 15% extra points.
 
+Please use the script `prepare_assignment.sh` to zip the submission folder, specifying the folder to zip as the first argument and the writeup document as the second document. For example, `sh prepare_assignment.sh Assignment_1 Assignment_1/writeup.pdf`. This will delete an existing zip file with the same name (in the case above, any existing `Assignment_1.zip` will be deleted).
+This may not work on Windows, so in that case make sure that you zip the parent folder and either indicate or provide the writeup separately in the submission. Please archive in to a `.zip` file in that case.
+
 ## Course Notes:
 
 The course notes will be adjusted along the way. The order is indicative and might change.
