@@ -27,7 +27,7 @@ In this exercise, you will implement different shading options for the triangles
 
 1. **Wireframe**: only the edges of the triangles are drawn.
 
-2. **Flat Shading**: each triangle is rendered using a unique color (i.e. the normal of all the fragments that compose a triangle is simply the normal of the plane that contains it). On top of the flat shaded triangle, you should draw the wireframe.
+2. **Flat Shading**: each triangle is rendered using a unique normal (i.e. the normal of all the fragments that compose a triangle is simply the normal of the plane that contains it). On top of the flat shaded triangle, you should draw the wireframe.
 
 3. **Per-Vertex Shading**: the normals are specified on the vertices of the mesh, the color is computed for each vertex, and then interpolated in the interior of the triangle.
 
