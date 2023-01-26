@@ -5,7 +5,7 @@ General Rules
 Plagiarism Note and Late Submissions
 ------------------------------------
 
-Copying code (either from other students or from external sources) is strictly prohibited. We will be using automatic anti-plagiarism tools, and any violation of this rule will lead to expulsion from the class. Late submissions will be accepted  with a grade penalty of 30% for up to 1 week after the deadline. In case of illness or emergency, please apply for an extension by sending an email to panozzo@nyu.edu attaching relevant documentation.
+Copying code (either from other students or from external sources) is strictly prohibited. We will be using automatic anti-plagiarism tools, and any violation of this rule will lead to expulsion from the class. Late submissions will be accepted with a grade penalty of 30% for up to 1 week after the deadline. In case of illness or emergency, please apply for an extension by sending an email to panozzo@nyu.edu.
 
 
 Provided Software
@@ -18,7 +18,9 @@ For this class, you will use the minimal framework provided with each assignment
 The assignments will use CMake as a build system. Before we can begin, you must install CMake on your computer.
 I recommend installing it with a package manager instead of the [CMake download page](http://www.cmake.org/download/). E.g. on Debian/Ubuntu: `sudo apt-get install cmake`, with HomeBrew on Mac: `brew install cmake`, and on Windows with [Chocolatey](https://chocolatey.org/): `choco install -y cmake`.
 
-You must install a C++ compiler: `gcc/clang` on Linux, `clang` on Mac, [Visual Studio](https://www.visualstudio.com/) on Windows. If you are looking for an IDE to develop in C++, we recommend [Visual Studio Code](https://code.visualstudio.com) on Mac/Linux, and [Visual Studio](https://www.visualstudio.com/) on Windows. 
+You must install a C++ compiler: `gcc/clang` on Linux, `clang` on Mac, [Visual Studio](https://www.visualstudio.com/) on Windows. If you are looking for an IDE to develop in C++, we recommend [Visual Studio Code](https://code.visualstudio.com) on Mac/Linux, and [Visual Studio](https://www.visualstudio.com/) on Windows.
+
+If you are using windows and you are not experienced with C/C++ development, I recommend to install WSL2 and do the assignment on a ubuntu linux installation within WSL2.
 
 ### Compiling the Sample Projects
 
