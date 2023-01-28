@@ -1,4 +1,9 @@
-Assignment_5/build/*
-Assignment_5/buildRelease/*
+Assignment_*/build/*
+Assignment_*/buildRelease/*
 .vscode/*
 */build*/*
+*/*.mp4
+.DS_Store
+*/.DS_Store
+.idea/
+*/.idea/
