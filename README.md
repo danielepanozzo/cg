@@ -14,15 +14,16 @@ URL: [http://cs.nyu.edu/~panozzo/](http://cs.nyu.edu/~panozzo/)
 ### Assistants
 *Arvi Gjoka*
 [arvi.gjoka@nyu.edu](mailto:arvi.gjoka@nyu.edu)
+
 *Jiacheng Dai*
 [jd4705@nyu.edu ](mailto:jd4705@nyu.edu )
 
-Office Hours: 
-* **Mondays**  TBD
-* **Tuesdays** TBD 
-* **Wednesdays** TBD 
-* **Thursdays** TBD 
-* **Fridays** TBD 
+Office Hours (starting from February 2nd): 
+* **Mondays**  Arvi 9-10AM, Discord
+* **Tuesdays** Arvi 3-4PM, 60 5th Ave, 502
+* **Wednesdays** Jiacheng 9AM, Discord 
+* **Thursdays** Daniele 3-4PM, 60 5th Ave, 504  
+* **Fridays** Jiacheng 2-3PM, 60 5th Ave, 502
 
 ### Lectures:
 Thursdays, 4:55 PM - 6:55 PM, GCASL, Room 269
