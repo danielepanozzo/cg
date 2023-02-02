@@ -123,7 +123,6 @@ jobs:
       - name: Set env
         run: |
           echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
-          conda init powershell
 
       - name: Assignment_1
         shell: cmd
