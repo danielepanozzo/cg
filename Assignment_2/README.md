@@ -25,6 +25,9 @@ In this exercise, you will modify the provided code to launch primary rays from 
 
 Each `TODO` in the provided code corresponds to a part that you need to fill to complete the assignment.
 
+#### Ray Tracing a Sphere
+1. Replace the ad-hoc ray sphere intersection algorithm with the generic one derived in class.
+
 #### Ray Tracing a Parallelogram
 1. Set up the parameters of the parallelogram (position of the corner, plus one vector for each side of the parallelogram)
 2. Create a function to check if a ray intersects with an arbitrary parallelogram.
