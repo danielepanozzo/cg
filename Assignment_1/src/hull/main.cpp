@@ -19,13 +19,14 @@ struct Compare {
 	bool operator ()(const Point &p1, const Point &p2) {
         double cross_product = det(p1-p0, p2-p0);
         if(cross_product==0) {
-            return norm(p2-p0) >= norm(p1-p0);
+            return norm(p2-p0) < norm(p1-p0);
         }
 		return cross_product>0;
 	}
 };
 
 bool inline salientAngle(Point &a, Point &b, Point &c) {
+    // Greater than or equal to include points on the edge of the convex hull. Just greater than will give minimal set of vertices. Matter of convention
 	return det(b-a, c-b)>=0;
 }
 
@@ -51,7 +52,7 @@ Polygon convex_hull(std::vector<Point> &points) {
 	std::sort(points.begin(), points.end(), order);
 	Polygon hull;
 	for(int i=0; i<points.size(); i++) {
-        while(hull.size()>2 && !salientAngle(hull.at(hull.size()-2), hull.back(), points.at(i))) {
+        while(hull.size()>=2 && !salientAngle(hull.at(hull.size()-2), hull.back(), points.at(i))) {
             hull.pop_back();
         }
         hull.push_back(points.at(i));

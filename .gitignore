@@ -1,9 +1,14 @@
 Assignment_*/build/*
 Assignment_*/buildRelease/*
+Assignment_*/cmake-build-debug/*
 .vscode/*
 */build*/*
 */*.mp4
 .DS_Store
 */.DS_Store
 .idea/
-*/.idea/
+*.out
+*.out.*/
+*/.vscode/*
+Assignment_*/.idea/*
+Assignment_*/data/*_test*
