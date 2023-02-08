@@ -77,18 +77,35 @@ std::vector<Point> load_xyz(const std::string &filename) {
 
 Polygon load_obj(const std::string &filename) {
     std::vector<Point> input_polygon;
-	std::ifstream in(filename);
+
+    std::ifstream in(filename);
     std::string line;
+
     float x, y, z;
     std::string v;
-    while(getline(in, line)) {
-        if(line[0]=='v') {
+    std::vector<int> face_indices;
+    int vertex_index;
+
+    while (getline(in, line)) {
+        if (line[0] == 'v') {
             std::istringstream iss( line );
             iss >> v >> x >> y >> z;
+            input_polygon.push_back(Point(x, y));
+        } else if (line[0] == 'f') {
+            std::istringstream iss( line );
+            iss >> v;
+            for(int i=0; i<input_polygon.size(); i++) {
+                iss >> vertex_index;
+                face_indices.push_back(vertex_index-1); // -1 to make it zero based counting
+            }
         }
-        input_polygon.push_back(Point(x, y));
     }
-	return input_polygon;
+
+    std::vector<Point> sorted_polygon(input_polygon.size()); // sorting required since the order of face vertices could be in any order
+    for (int i=0; i<input_polygon.size(); i++) {
+        sorted_polygon[face_indices[i]] = input_polygon[i];
+    }
+	return sorted_polygon;
 }
 
 void save_xyz(const std::string &filename, const std::vector<Point> &points) {
