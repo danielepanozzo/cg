@@ -29,33 +29,35 @@ void raytrace_sphere() {
 	// Single light source
 	const Vector3d light_position(-1,1,1);
 
+    Vector3d sphere_origin(0, 0, 0);
+    const double sphere_radius = 0.9;
+    Vector3d w(0, 0, 1); // orthographic projection image plane normal direction
+
 	for (unsigned i=0; i < C.cols(); ++i) {
 		for (unsigned j=0; j < C.rows(); ++j) {
 			// Prepare the ray
 			Vector3d ray_origin = origin + double(i)*x_displacement + double(j)*y_displacement;
-			Vector3d ray_direction = RowVector3d(0,0,-1);
+			Vector3d ray_direction = -1 * w;
 
-			// Intersect with the sphere
-			// NOTE: this is a special case of a sphere centered in the origin and for orthographic rays aligned with the z axis
-			Vector2d ray_on_xy(ray_origin(0),ray_origin(1));
-			const double sphere_radius = 0.9;
+			// Generic implementation of ray sphere intersection
+            // Based on class notes, formulating intersection as (d.d)t^2 + 2d.(e-c)t + (e-c)(e-c) - R^2 = 0 where e is origin of ray and d is direction of ray
+            double _A = ray_direction.dot(ray_direction);
+            double _B = 2 * ray_direction.dot(ray_origin - sphere_origin);
+            double _C = (ray_origin-sphere_origin).dot(ray_origin-sphere_origin) - sphere_radius*sphere_radius;
 
-			if (ray_on_xy.norm() < sphere_radius) {
-				// The ray hit the sphere, compute the exact intersection point
-				Vector3d ray_intersection(ray_on_xy(0),ray_on_xy(1),sqrt(sphere_radius*sphere_radius - ray_on_xy.squaredNorm()));
+            double discriminant = _B*_B - 4*_A*_C;
 
-				// Compute normal at the intersection point
-				Vector3d ray_normal = ray_intersection.normalized();
+            if (discriminant >= 0) {
+                double t1 = (-_B + pow(discriminant, 0.5)) / (2*_A);
+                double t2 = (-_B - pow(discriminant, 0.5)) / (2*_A);
 
-				// Simple diffuse model
-				C(i,j) = (light_position-ray_intersection).normalized().transpose() * ray_normal;
-
-				// Clamp to zero
-				C(i,j) = std::max(C(i,j),0.);
-
-				// Disable the alpha mask for this pixel
-				A(i,j) = 1;
-			}
+                double t_int = (t1 > t2) ? t2: t1;
+                Vector3d ray_intersection = ray_origin + t_int * ray_direction;
+                Vector3d ray_normal = (ray_intersection-sphere_origin).normalized();
+                C(i,j) = (light_position-ray_intersection).normalized().transpose() * ray_normal;
+                C(i,j) = std::max(C(i,j),0.);
+                A(i,j) = 1;
+            }
 		}
 	}
 
@@ -222,9 +224,9 @@ void raytrace_shading(){
 
 int main() {
 	raytrace_sphere();
-	raytrace_parallelogram();
-	raytrace_perspective();
-	raytrace_shading();
+//	raytrace_parallelogram();
+//	raytrace_perspective();
+//	raytrace_shading();
 
 	return 0;
 }
