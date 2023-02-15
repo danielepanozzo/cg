@@ -154,12 +154,12 @@ void raytrace_perspective() { // TODO: add sphere and compare!!!!!
 
 	// Parameters of the parallelogram (position of the lower-left corner + two sides)
 	Vector3d pgram_origin(-0.75, -0.75, 0);
-	Vector3d pgram_u(1, 0, 1);
-	Vector3d pgram_v(0.5, 0.866, 0);
+	Vector3d pgram_u(1, 1, 0);
+	Vector3d pgram_v(1, 0, 0);
 
 	// Single light source
 	const Vector3d light_position(-1,1,1);
-    Vector3d camera_position(0, 2, 5);
+    Vector3d camera_position(-2, 5, 5);
 
 	for (unsigned i=0; i < C.cols(); ++i) {
 		for (unsigned j=0; j < C.rows(); ++j) {
@@ -175,6 +175,11 @@ void raytrace_perspective() { // TODO: add sphere and compare!!!!!
 
 				// Compute normal at the intersection point
 				Vector3d ray_normal = pgram_u.cross(pgram_v).normalized();
+                if (ray_normal.dot(light_position-ray_intersection) < 0) {
+                    ray_normal = -1 * ray_normal;
+                }
+
+
 
 				// Simple diffuse model
 				C(i,j) = (light_position-ray_intersection).normalized().transpose() * ray_normal;
@@ -263,10 +268,10 @@ void raytrace_shading(){
 }
 
 int main() {
-	raytrace_sphere();
-	raytrace_parallelogram();
+//	raytrace_sphere();
+//	raytrace_parallelogram();
 	raytrace_perspective();
-	raytrace_shading();
+//	raytrace_shading();
 
 	return 0;
 }
