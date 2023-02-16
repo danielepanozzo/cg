@@ -16,7 +16,8 @@ using namespace Eigen;
 
 bool check_ray_sphere_intersection(Vector3d& ray_origin, Vector3d& ray_direction, Vector3d& sphere_origin,
                                    double sphere_radius, double& t) {
-    // Based on class notes, formulating intersection as (d.d)t^2 + 2d.(e-c)t + (e-c)(e-c) - R^2 = 0 where e is origin of ray and d is direction of ray
+    // Based on class notes, formulating intersection as (d.d)t^2 + 2d.(e-c)t + (e-c)(e-c) - R^2 = 0
+    // where e is origin of ray, d is direction of ray, c is the sphere center and R is the sphere radius
     double _A = ray_direction.dot(ray_direction);
     double _B = 2 * ray_direction.dot(ray_origin - sphere_origin);
     double _C = (ray_origin-sphere_origin).dot(ray_origin-sphere_origin) - sphere_radius*sphere_radius;
@@ -28,7 +29,7 @@ bool check_ray_sphere_intersection(Vector3d& ray_origin, Vector3d& ray_direction
 
     double t1 = (-_B + pow(discriminant, 0.5)) / (2*_A);
     double t2 = (-_B - pow(discriminant, 0.5)) / (2*_A);
-    t = (t1 > t2) ? t2: t1;
+    t = (t1 > t2) ? t2: t1; // the smaller t will correspond to the point of first intersection
     return true;
 }
 
@@ -75,16 +76,20 @@ void raytrace_sphere() {
 
 bool check_ray_parallelogram_intersection(Vector3d& ray_origin, Vector3d& ray_direction, Vector3d& pgram_origin,
                                           Vector3d& pgram_u, Vector3d& pgram_v, double& t) {
+    // Modelling details:
+    // parallelogram can be represented as pgram_origin + p * pgram_u + q * pgram_v, s.t. 0<=p<=1 & 0<=q<=1
+    // for intersection, ray_origin + t*ray_direction = pgram_origin + p * pgram_u + q * pgram_v
+    // this gives 3 equations, which can be solved using the linear solver, if 0<=p<=1 & 0<=q<=1 & t>0 the ray intersects the plane
     Matrix3d A;
     Vector3d b;
     A << pgram_u.x(), pgram_v.x(), -ray_direction.x(), pgram_u.y(), pgram_v.y(), -ray_direction.y(), pgram_u.z(), pgram_v.z(), -ray_direction.z();
     b = ray_origin - pgram_origin;
 
     Vector3d x = A.colPivHouseholderQr().solve(b);
-    double u = x.x();
-    double v = x.y();
+    double p = x.x();
+    double q = x.y();
     t = x.z();
-    return u>=0 && u<=1 && v>=0 && v<=1 && t>0;
+    return p>=0 && p<=1 && q>=0 && q<=1 && t>0;
 }
 
 void raytrace_parallelogram() {
