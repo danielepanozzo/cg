@@ -34,6 +34,7 @@ jobs:
       - name: Dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
+            sudo apt-get update
             sudo apt-get install \
             libblas-dev \
             libglu1-mesa-dev \
