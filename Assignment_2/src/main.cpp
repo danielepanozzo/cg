@@ -120,7 +120,8 @@ void raytrace_parallelogram() {
 
 				// Compute normal at the intersection point
 				Vector3d ray_normal = pgram_u.cross(pgram_v).normalized();
-                if (ray_normal.dot(light_position-ray_intersection) < 0) {
+                // choose normal facing towards camera (i.e. -ray_direction)
+                if (ray_normal.dot(-1*ray_direction) < 0) {
                     ray_normal = -1 * ray_normal;
                 }
 
@@ -154,7 +155,7 @@ void raytrace_perspective() {
 
 	// Parameters of the parallelogram (position of the lower-left corner + two sides)
 	Vector3d pgram_origin(-0.75, 0.4, 0);
-	Vector3d pgram_u(0.7, 0.7, 0);
+	Vector3d pgram_u(0.7, 0.7, -1);
 	Vector3d pgram_v(1, 0, 0);
 
 	// Single light source
@@ -177,7 +178,7 @@ void raytrace_perspective() {
 
 				// Compute normal at the intersection point
 				Vector3d ray_normal = pgram_u.cross(pgram_v).normalized();
-                if (ray_normal.dot(light_position-ray_intersection) < 0) {
+                if (ray_normal.dot(-1*ray_direction) < 0) {
                     ray_normal = -1 * ray_normal;
                 }
 
@@ -276,10 +277,10 @@ void raytrace_shading(){
 }
 
 int main() {
-//	raytrace_sphere();
-//	raytrace_parallelogram();
+	raytrace_sphere();
+	raytrace_parallelogram();
 	raytrace_perspective();
-//	raytrace_shading();
+	raytrace_shading();
 
 	return 0;
 }
