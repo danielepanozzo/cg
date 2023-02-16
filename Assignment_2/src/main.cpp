@@ -140,7 +140,7 @@ void raytrace_parallelogram() {
 	write_matrix_to_png(C,C,C,A,filename);
 }
 
-void raytrace_perspective() { // TODO: add sphere and compare!!!!!
+void raytrace_perspective() {
 	std::cout << "Simple ray tracer, one parallelogram with perspective projection" << std::endl;
 
 	const std::string filename("plane_perspective.png");
@@ -153,13 +153,15 @@ void raytrace_perspective() { // TODO: add sphere and compare!!!!!
 	Vector3d y_displacement(0,-2.0/C.rows(),0);
 
 	// Parameters of the parallelogram (position of the lower-left corner + two sides)
-	Vector3d pgram_origin(-0.75, -0.75, 0);
-	Vector3d pgram_u(1, 1, 0);
+	Vector3d pgram_origin(-0.75, 0.4, 0);
+	Vector3d pgram_u(0.7, 0.7, 0);
 	Vector3d pgram_v(1, 0, 0);
 
 	// Single light source
 	const Vector3d light_position(-1,1,1);
-    Vector3d camera_position(-2, 5, 5);
+    Vector3d camera_position(0, 0, 5);
+    Vector3d sphere_origin(0, 0, 0);
+    const double sphere_radius = 0.3;
 
 	for (unsigned i=0; i < C.cols(); ++i) {
 		for (unsigned j=0; j < C.rows(); ++j) {
@@ -179,8 +181,6 @@ void raytrace_perspective() { // TODO: add sphere and compare!!!!!
                     ray_normal = -1 * ray_normal;
                 }
 
-
-
 				// Simple diffuse model
 				C(i,j) = (light_position-ray_intersection).normalized().transpose() * ray_normal;
 
@@ -190,6 +190,14 @@ void raytrace_perspective() { // TODO: add sphere and compare!!!!!
 				// Disable the alpha mask for this pixel
 				A(i,j) = 1;
 			}
+
+            if (check_ray_sphere_intersection(ray_origin, ray_direction, sphere_origin, sphere_radius, t)) {
+                Vector3d ray_intersection = ray_origin + t * ray_direction;
+                Vector3d ray_normal = (ray_intersection-sphere_origin).normalized();
+                C(i,j) = (light_position-ray_intersection).normalized().transpose() * ray_normal;
+                C(i,j) = std::max(C(i,j),0.);
+                A(i,j) = 1;
+            }
 		}
 	}
 
