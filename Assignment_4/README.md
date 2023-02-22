@@ -21,6 +21,8 @@ In this exercise you will implement the ray-tracing of a triangle mesh. Without 
 
 1. Fill the starting code to complete the function implementing the intersection of a ray and a triangle. This should be similar to the code you developed for Assignment 2.
 2. Fill the starting code to implement the ray-tracing of a triangle mesh.
+3. Implement the find_nearest_object function and remember to return a boolean and not the index of the closest triangle.
+4. Implement the correct image_y and image_x.
 
 Ex.2: AABB Trees
 ----------------
@@ -70,6 +72,8 @@ To evaluate which pair of node we should merge first, you can try one of the fol
 2. Implement the top-down or the bottom-up construction method described above. 
 3. Update the intersection code of a ray and a mesh to use this newly created BVH. In particular, now you should only need to test the intersection for leaf nodes whose bounding box also intersects the input ray.
 
+*Important: The code with and without the BVH should produce exactly the same image.*
+
 Starting Code
 -------------
 
@@ -77,22 +81,15 @@ After compiling the code following the process described in the [general instruc
 
 ```
 mkdir build; cd build; cmake ..; make
-./assignment4 ../data/scene.json
+./assignment4 
 ```
-Once you complete the assignment, you should see result a picture generated in your folder.
-
-Running the completed code on the provided file `scene.json` should give you the following result:
+Your completed code should create images similar to:
 
 ![](img/bunny.png?raw=true)
 
-Once you have implemented an acceleration structure, you should be able to render more complex objects in a few seconds, such as this [dragon][1]:
+Once you have implemented an acceleration structure, you should be able to render more complex objects in a few seconds, such as this [dragon]:
 
 ![](img/dragon.png?raw=true)
-
-NB: To visualize the input 3D models, it is suggested to use a software such as [Meshlab](http://www.meshlab.net/).
-
-[1]: http://cs.nyu.edu/courses/fall17/CSCI-UA.0480-008/data/dragon.off
-
 
 References
 ----------
