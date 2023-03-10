@@ -193,7 +193,6 @@ Vector4d procedural_texture(const double tu, const double tv)
 //Compute the intersection between a ray and a sphere, return -1 if no intersection
 double ray_sphere_intersection(const Vector3d &ray_origin, const Vector3d &ray_direction, int index, Vector3d &p, Vector3d &N)
 {
-    // TODO, implement the intersection between the ray and the sphere at index index.
     //return t or -1 if no intersection
 
     const Vector3d sphere_center = sphere_centers[index];
@@ -201,16 +200,19 @@ double ray_sphere_intersection(const Vector3d &ray_origin, const Vector3d &ray_d
 
     double t = -1;
 
-    if (false)
+    double A = ray_direction.dot(ray_direction);
+    double B = 2 * ray_direction.dot(ray_origin-sphere_center);
+    double C = (ray_origin-sphere_center).dot(ray_origin-sphere_center) - sphere_radius*sphere_radius;
+    double discriminant = B*B - 4*A*C;
+    if (discriminant < 0)
     {
         return -1;
     }
     else
     {
-        //TODO set the correct intersection point, update p to the correct value
-        p = ray_origin;
-        N = ray_direction;
-
+        t = std::min((-B-std::sqrt(discriminant))/(2*A), (-B+std::sqrt(discriminant))/(2*A));
+        p = ray_origin + t*ray_direction;
+        N = (p-sphere_center).normalized();
         return t;
     }
 
@@ -220,25 +222,29 @@ double ray_sphere_intersection(const Vector3d &ray_origin, const Vector3d &ray_d
 //Compute the intersection between a ray and a paralleogram, return -1 if no intersection
 double ray_parallelogram_intersection(const Vector3d &ray_origin, const Vector3d &ray_direction, int index, Vector3d &p, Vector3d &N)
 {
-    // TODO, implement the intersection between the ray and the parallelogram at index index.
     //return t or -1 if no intersection
 
     const Vector3d pgram_origin = parallelograms[index].col(0);
-    const Vector3d A = parallelograms[index].col(1);
-    const Vector3d B = parallelograms[index].col(2);
-    const Vector3d pgram_u = A - pgram_origin;
-    const Vector3d pgram_v = B - pgram_origin;
+    const Vector3d pgram_u = parallelograms[index].col(1) - pgram_origin;
+    const Vector3d pgram_v = parallelograms[index].col(2) - pgram_origin;
 
-    if (false)
+    Matrix3d A;
+    Vector3d b;
+    A << pgram_u.x(), pgram_v.x(), -ray_direction.x(), pgram_u.y(), pgram_v.y(), -ray_direction.y(), pgram_u.z(), pgram_v.z(), -ray_direction.z();
+    b = ray_origin - pgram_origin;
+
+    Vector3d x = A.colPivHouseholderQr().solve(b);
+    double p1 = x.x();
+    double q1 = x.y();
+    double t = x.z();
+    if (!(p1>=0 && p1<=1 && q1>=0 && q1<=1 && t>0))
     {
         return -1;
     }
 
-    //TODO set the correct intersection point, update p and N to the correct values
-    p = ray_origin;
-    N = p.normalized();
-
-    return -1;
+    p = ray_origin + t*ray_direction;
+    N = pgram_u.cross(pgram_v).normalized();
+    return t;
 }
 
 //Finds the closest intersecting object returns its index
