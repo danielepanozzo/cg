@@ -28,6 +28,7 @@ const double image_z = 5;
 const bool is_perspective = true;
 const Vector3d camera_position(0, 0, 5);
 
+const double epsilon = 0.00001; // shoot ray from epsilon away from source towards light
 //Maximum number of recursive calls
 const int max_bounce = 5;
 
@@ -306,7 +307,6 @@ int find_nearest_object(const Vector3d &ray_origin, const Vector3d &ray_directio
 //Checks if the light is visible
 bool is_light_visible(const Vector3d &ray_origin, const Vector3d &ray_direction, const Vector3d &light_position)
 {
-    double epsilon = 0.00001; // shoot ray from epsilon away from source towards light
     Vector3d p, N;
     const int nearest_object = find_nearest_object(ray_origin + epsilon*ray_direction, ray_direction, p, N);
     if (nearest_object < 0) {
@@ -375,9 +375,12 @@ Vector4d shoot_ray(const Vector3d &ray_origin, const Vector3d &ray_direction, in
     {
         refl_color = Vector4d(0.5, 0.5, 0.5, 0);
     }
-    // TODO: Compute the color of the reflected ray and add its contribution to the current point color.
-    // use refl_color
+
     Vector4d reflection_color(0, 0, 0, 0);
+    if (max_bounce>0) {
+        Vector3d new_ray_direction = ray_direction - 2*(ray_direction.dot(N))*N;
+        reflection_color = shoot_ray(p + epsilon*new_ray_direction, new_ray_direction, max_bounce-1).cwiseProduct(refl_color);
+    }
 
     // TODO: Compute the color of the refracted ray and add its contribution to the current point color.
     //       Make sure to check for total internal reflection before shooting a new ray.
