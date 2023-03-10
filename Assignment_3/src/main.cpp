@@ -244,6 +244,9 @@ double ray_parallelogram_intersection(const Vector3d &ray_origin, const Vector3d
 
     p = ray_origin + t*ray_direction;
     N = pgram_u.cross(pgram_v).normalized();
+    if (N.dot(-1*ray_direction) < 0) {
+        N = -1 * N;
+    }
     return t;
 }
 
@@ -303,9 +306,13 @@ int find_nearest_object(const Vector3d &ray_origin, const Vector3d &ray_directio
 //Checks if the light is visible
 bool is_light_visible(const Vector3d &ray_origin, const Vector3d &ray_direction, const Vector3d &light_position)
 {
-    // TODO: Determine if the light is visible here
-    // Use find_nearest_object
-    return true;
+    double epsilon = 0.00001; // shoot ray from epsilon away from source towards light
+    Vector3d p, N;
+    const int nearest_object = find_nearest_object(ray_origin + epsilon*ray_direction, ray_direction, p, N);
+    if (nearest_object < 0) {
+        return true;
+    }
+    return (light_position-ray_origin).norm() < (p-ray_origin).norm();
 }
 
 Vector4d shoot_ray(const Vector3d &ray_origin, const Vector3d &ray_direction, int max_bounce)
@@ -333,7 +340,9 @@ Vector4d shoot_ray(const Vector3d &ray_origin, const Vector3d &ray_direction, in
 
         const Vector3d Li = (light_position - p).normalized();
 
-        // TODO: Shoot a shadow ray to determine if the light should affect the intersection point and call is_light_visible
+        if (!is_light_visible(p, Li, light_position)) {
+            continue;
+        }
 
         Vector4d diff_color = obj_diffuse_color;
 
