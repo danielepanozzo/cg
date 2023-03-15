@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <random>
 
 // Utilities for the Assignment
 #include "utils.h"
@@ -22,9 +23,13 @@ using namespace Eigen;
 const std::string filename("raytrace.png");
 
 //Camera settings
-const double focal_length = 10;
+// DOF changes
+// Focal length set to focus on sphere 3 (just right of the checker colored sphere),
+// z=-1 for this sphere and camera is at z=5, therefore focal_length=5-(-1)=6 should focus on this.
+// Adjusted image_z to 1 (focal_length - camera's z) since image plane is at -image_z
+const double focal_length = 6;
 const double field_of_view = 0.7854; //45 degrees
-const double image_z = 5;
+const double image_z = 1;
 const bool is_perspective = true;
 const Vector3d camera_position(0, 0, 5);
 
@@ -55,6 +60,12 @@ std::vector<Vector4d> light_colors;
 //Ambient light
 const Vector4d ambient_light(0.2, 0.2, 0.2, 0);
 
+// Depth-of-field parameters
+// Set dof_sample_radius = 0.0 to turn off dof
+int dof_n_samples = 10;
+double dof_sample_radius = 0.06;
+std::vector<Vector3d> dof_noise;
+
 //Fills the different arrays
 void setup_scene()
 {
@@ -65,6 +76,18 @@ void setup_scene()
         for (int j = 0; j < grid_size + 1; ++j)
             grid[i][j] = Vector2d::Random().normalized();
     }
+
+    // DOF random points in dof_sample_radius around the camera
+    std::uniform_real_distribution<double> unif(0.0,dof_sample_radius);
+    std::default_random_engine re;
+    for (int i=0; i<dof_n_samples; i++) {
+        double rand_radius = unif(re);
+        Vector2d rand_point = Vector2d::Random().normalized() * rand_radius;
+        double noisy_x = camera_position.x() + rand_point.x();
+        double noisy_y = camera_position.y() + rand_point.y();
+        dof_noise.emplace_back(Vector3d(noisy_x, noisy_y, 0));
+    }
+
 
     //Spheres
     sphere_centers.emplace_back(10, 0, 1);
@@ -131,8 +154,8 @@ double lerp(double a0, double a1, double w)
     assert(w >= 0);
     assert(w <= 1);
 
-//    return a0 + w * (a1-a0); // Linear interpolation
-    return (a1 - a0) * (3.0 - w * 2.0) * w * w + a0; // Cubic Interpolation
+    return a0 + w * (a1-a0); // Linear interpolation
+//    return (a1 - a0) * (3.0 - w * 2.0) * w * w + a0; // Cubic Interpolation
 }
 
 // Computes the dot product of the distance and gradient vectors.
@@ -179,7 +202,6 @@ Vector4d procedural_texture(const double tu, const double tv)
     assert(tu <= 1);
     assert(tv <= 1);
 
-    //TODO: uncomment these lines once you implement the perlin noise
      const double color = (perlin(tu * grid_size, tv * grid_size) + 1) / 2;
      return Vector4d(0, color, 0, 0);
 
@@ -425,30 +447,36 @@ void raytrace_scene()
     {
         for (unsigned j = 0; j < h; ++j)
         {
-            // TODO: Implement depth of field
             const Vector3d pixel_center = image_origin + (i + 0.5) * x_displacement + (j + 0.5) * y_displacement;
 
             // Prepare the ray
             Vector3d ray_origin;
             Vector3d ray_direction;
 
-            if (is_perspective)
-            {
-                ray_origin = camera_position;
-                ray_direction = (pixel_center-ray_origin).normalized();
-            }
-            else
-            {
-                // Orthographic camera
-                ray_origin = camera_position + Vector3d(pixel_center[0], pixel_center[1], 0);
-                ray_direction = Vector3d(0, 0, -1);
-            }
+            // Depth-of-field
+            for (int k=0; k<dof_n_samples; k++) {
+                if (is_perspective)
+                {
+                    ray_origin = camera_position + dof_noise[k];
+                    ray_direction = (pixel_center-ray_origin).normalized();
+                }
+                else
+                {
+                    // Orthographic camera
+                    ray_origin = camera_position + Vector3d(pixel_center[0], pixel_center[1], 0) + dof_noise[k];
+                    ray_direction = Vector3d(0, 0, -1);
+                }
 
-            const Vector4d C = shoot_ray(ray_origin, ray_direction, max_bounce);
-            R(i, j) = C(0);
-            G(i, j) = C(1);
-            B(i, j) = C(2);
-            A(i, j) = C(3);
+                const Vector4d C = shoot_ray(ray_origin, ray_direction, max_bounce);
+                R(i, j) += C(0);
+                G(i, j) += C(1);
+                B(i, j) += C(2);
+                A(i, j) += C(3);
+            }
+            R(i, j) /= dof_n_samples;
+            G(i, j) /= dof_n_samples;
+            B(i, j) /= dof_n_samples;
+            A(i, j) /= dof_n_samples;
         }
     }
 
