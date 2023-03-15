@@ -50,6 +50,12 @@ const double obj_specular_exponent = 256.0;
 const Vector4d obj_reflection_color(0.7, 0.7, 0.7, 0);
 const Vector4d obj_refraction_color(0.7, 0.7, 0.7, 0);
 
+// Refraction parameters
+bool enable_refraction = true;
+double src_refr_index = 1; // source refractive index (vacuum/air assumed)
+double obj_refr_index = 1.5; // sphere refractive index (glass value used)
+double refr_critical_angle = 1.57; // vacuum to glass
+
 // Precomputed (or otherwise) gradient vectors at each grid node
 const int grid_size = 20;
 std::vector<std::vector<Vector2d>> grid;
@@ -405,9 +411,18 @@ Vector4d shoot_ray(const Vector3d &ray_origin, const Vector3d &ray_direction, in
         reflection_color = shoot_ray(p + epsilon*new_ray_direction, new_ray_direction, max_bounce-1).cwiseProduct(refl_color);
     }
 
-    // TODO: Compute the color of the refracted ray and add its contribution to the current point color.
-    //       Make sure to check for total internal reflection before shooting a new ray.
     Vector4d refraction_color(0, 0, 0, 0);
+    if (enable_refraction) {
+        // Compute the color of the refracted ray and add its contribution to the current point color.
+        double cos_in = N.dot((-ray_direction).normalized()); // cos of angle of incidence
+        if (acos(cos_in) < refr_critical_angle) {
+            // cos of angle of refraction
+            double cos_refr = std::sqrt(1.0-(std::pow(src_refr_index,2)*(1-std::pow(cos_in,2))/std::pow(obj_refr_index,2)));
+            Vector3d new_ray_direction = ((src_refr_index/obj_refr_index) * (ray_direction + N*cos_in)) - N*cos_refr;
+            refraction_color = shoot_ray(p + epsilon * new_ray_direction, new_ray_direction,
+                                                 max_bounce - 1).cwiseProduct(obj_refraction_color);
+        }
+    }
 
     // Rendering equation
     Vector4d C = ambient_color + lights_color + reflection_color + refraction_color;
