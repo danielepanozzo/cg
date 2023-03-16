@@ -7,6 +7,7 @@
 #include <fstream>
 #include <algorithm>
 #include <numeric>
+#include <float.h>
 
 // Utilities for the Assignment
 #include "utils.h"
@@ -46,7 +47,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 const std::string data_dir = DATA_DIR;
 const std::string filename("raytrace.png");
-const std::string mesh_filename(data_dir + "dodeca.off");
+const std::string mesh_filename(data_dir + "bunny.off");
 
 //Camera settings
 const double focal_length = 2;
@@ -163,11 +164,31 @@ AABBTree::AABBTree(const MatrixXd &V, const MatrixXi &F)
 
 double ray_triangle_intersection(const Vector3d &ray_origin, const Vector3d &ray_direction, const Vector3d &a, const Vector3d &b, const Vector3d &c, Vector3d &p, Vector3d &N)
 {
-    // TODO
     // Compute whether the ray intersects the given triangle.
     // If you have done the parallelogram case, this should be very similar to it.
 
-    return -1;
+
+    Matrix3d A_eq;
+    Vector3d b_eq;
+    A_eq << a.x()-b.x(), a.x()-c.x(), ray_direction.x(),
+            a.y()-b.y(), a.y()-c.y(), ray_direction.y(),
+            a.z()-b.z(), a.z()-c.z(), ray_direction.z();
+    b_eq = a - ray_origin;
+
+    Vector3d x = A_eq.colPivHouseholderQr().solve(b_eq);
+    double u = x.x();
+    double v = x.y();
+    double t = x.z();
+    if (!(u>=0 && v>=0 && (u+v)<=1 && t>0)) {
+        return -1;
+    }
+
+    p = ray_origin + t*ray_direction;
+    N = (b-a).cross(c-a).normalized();
+    if (N.dot(-1*ray_direction) < 0) {
+        N = -1 * N;
+    }
+    return t;
 }
 
 bool ray_box_intersection(const Vector3d &ray_origin, const Vector3d &ray_direction, const AlignedBox3d &box)
@@ -178,18 +199,53 @@ bool ray_box_intersection(const Vector3d &ray_origin, const Vector3d &ray_direct
     return false;
 }
 
+bool find_nearest_object_brute_force(const Vector3d &ray_origin, const Vector3d &ray_direction, Vector3d &p, Vector3d &N) {
+    double t_min = DBL_MAX;
+    Vector3d nearest_triangle_p;
+    Vector3d nearest_traingle_N;
+
+    double t;
+    Vector3d p1;
+    Vector3d N1;
+    for (int i=0; i<facets.rows(); i++) {
+        t = ray_triangle_intersection(
+                ray_origin, ray_direction,
+                vertices.row(facets(i, 0)),
+                vertices.row(facets(i, 1)),
+                vertices.row(facets(i, 2)),
+                p1, N1
+        );
+        if(t>=0 && t<t_min) {
+            t_min = t;
+            nearest_triangle_p = p1;
+            nearest_traingle_N = N1;
+        }
+    }
+    if (t_min == DBL_MAX) {
+        return false;
+    }
+    p = nearest_triangle_p;
+    N = nearest_traingle_N;
+    return true;
+}
+
+bool find_nearest_object_bvh(const Vector3d &ray_origin, const Vector3d &ray_direction, Vector3d &p, Vector3d &N) {
+    // TODO
+    return false;
+}
+
 //Finds the closest intersecting object returns its index
 //In case of intersection it writes into p and N (intersection point and normals)
 bool find_nearest_object(const Vector3d &ray_origin, const Vector3d &ray_direction, Vector3d &p, Vector3d &N)
 {
     Vector3d tmp_p, tmp_N;
 
-    // TODO
-    // Method (1): Traverse every triangle and return the closest hit.
+    // Method (1) Traverse every triangle and return the closest hit.
+    return find_nearest_object_brute_force(ray_origin,ray_direction, p, N);
+
     // Method (2): Traverse the BVH tree and test the intersection with a
     // triangles at the leaf nodes that intersects the input ray.
-
-    return false;
+//    return find_nearest_object_bvh(ray_origin,ray_direction, p, N);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -261,9 +317,8 @@ void raytrace_scene()
     // The sensor grid is at a distance 'focal_length' from the camera center,
     // and covers an viewing angle given by 'field_of_view'.
     double aspect_ratio = double(w) / double(h);
-    //TODO
-    double image_y = 1;
-    double image_x = 1;
+    double image_y = focal_length * std::tan(field_of_view/2);
+    double image_x = aspect_ratio * image_y;
 
     // The pixel grid through which we shoot rays is at a distance 'focal_length'
     const Vector3d image_origin(-image_x, image_y, camera_position[2] - focal_length);
