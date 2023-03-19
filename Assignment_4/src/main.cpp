@@ -48,7 +48,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 const std::string data_dir = DATA_DIR;
 const std::string filename("raytrace.png");
-const std::string mesh_filename(data_dir + "dodeca.off");
+const std::string mesh_filename(data_dir + "dragon.off");
 
 //Camera settings
 const double focal_length = 2;
@@ -193,8 +193,7 @@ int AABBTree::build_bvh_top_down(const MatrixXd &V, const MatrixXi &F, const Mat
     }
 
     // Sort based on split_axis and divide points into two sets
-    // TODO: enable sorting
-//    std::sort(s, e, [&](int a, int b) { return centroids(a, split_axis) < centroids(b, split_axis); });
+    std::sort(s, e, [&](int a, int b) { return centroids(a, split_axis) < centroids(b, split_axis); });
     int *m = s + (e - s + 1) / 2;
     new_node.left = build_bvh_top_down(V, F, centroids, s, m);
     new_node.right = build_bvh_top_down(V, F, centroids, m, e);
@@ -340,16 +339,17 @@ bool find_nearest_object_brute_force(const Vector3d &ray_origin, const Vector3d 
 }
 
 bool find_nearest_object_bvh(const int curr_node_id, const Vector3d &ray_origin, const Vector3d &ray_direction, Vector3d &p, Vector3d &N) {
-    if (bvh.nodes[curr_node_id].left == -1 && bvh.nodes[curr_node_id].right == -1) {
+    if (bvh.nodes[curr_node_id].triangle != -1) {
         // Leaf node, check intersection with triangle
         return ray_triangle_intersection(
                 ray_origin, ray_direction,
                 vertices.row(facets(bvh.nodes[curr_node_id].triangle, 0)),
                 vertices.row(facets(bvh.nodes[curr_node_id].triangle, 1)),
                 vertices.row(facets(bvh.nodes[curr_node_id].triangle, 2)),
-                p, N);
+                p, N) >=0 ;
     }
     if (ray_box_intersection(ray_origin, ray_direction, bvh.nodes[curr_node_id].bbox)) {
+        // Allocate on heap to use outside this function
         Vector3d* p1 = new Vector3d();
         Vector3d* p2 = new Vector3d();
         Vector3d* N1 = new Vector3d();
