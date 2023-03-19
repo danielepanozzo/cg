@@ -40,6 +40,7 @@ public:
 
     AABBTree() = default;                           // Default empty constructor
     AABBTree(const MatrixXd &V, const MatrixXi &F); // Build a BVH from an existing mesh
+    int build_bvh_top_down(const MatrixXd &V, const MatrixXi &F, const MatrixXd &centroids, int* s, int* e);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -47,7 +48,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 const std::string data_dir = DATA_DIR;
 const std::string filename("raytrace.png");
-const std::string mesh_filename(data_dir + "bunny.off");
+const std::string mesh_filename(data_dir + "dodeca.off");
 
 //Camera settings
 const double focal_length = 2;
@@ -152,10 +153,60 @@ AABBTree::AABBTree(const MatrixXd &V, const MatrixXi &F)
         centroids.row(i) /= F.cols();
     }
 
-    // TODO
-
     // Split each set of primitives into 2 sets of roughly equal size,
     // based on sorting the centroids along one direction or another.
+    int triangle_idx[F.rows()];
+    for (int i=0; i<F.rows(); i++) {
+        triangle_idx[i] = i;
+    }
+    root = build_bvh_top_down(V, F, centroids, triangle_idx, triangle_idx+F.rows());
+}
+
+int AABBTree::build_bvh_top_down(const MatrixXd &V, const MatrixXi &F, const MatrixXd &centroids, int* s, int* e) {
+    Node new_node;
+    new_node.parent = -1;
+
+
+    if ((e - s) == 1) {
+        // This indicates a leaf node
+        new_node.left = -1;
+        new_node.right = -1;
+        new_node.triangle = *s;
+
+        new_node.bbox = bbox_from_triangle(V.row(F(*s, 0)), V.row(F(*s, 1)), V.row(F(*s, 2)));
+        nodes.emplace_back(new_node);
+        return nodes.size()-1;
+    }
+    // Decide axis to sort the centroids
+    AlignedBox3d b;
+    for (int *i = s; i < e; i++) {
+        b.extend(centroids.row(*i).transpose());
+    }
+    Vector3d b_sizes = b.sizes();
+    int split_axis = 0;
+    double curr_max = b_sizes[0];
+    for (int i = 1; i < centroids.cols(); i++) {
+        if (b_sizes[i] > curr_max) {
+            split_axis = i;
+            curr_max = b_sizes[i];
+        }
+    }
+
+    // Sort based on split_axis and divide points into two sets
+    // TODO: enable sorting
+//    std::sort(s, e, [&](int a, int b) { return centroids(a, split_axis) < centroids(b, split_axis); });
+    int *m = s + (e - s + 1) / 2;
+    new_node.left = build_bvh_top_down(V, F, centroids, s, m);
+    new_node.right = build_bvh_top_down(V, F, centroids, m, e);
+    new_node.bbox = AlignedBox3d();
+    new_node.bbox.extend(nodes[new_node.left].bbox);
+    new_node.bbox.extend(nodes[new_node.right].bbox);
+    new_node.triangle = -1;
+    nodes.emplace_back(new_node);
+    nodes[new_node.left].parent = nodes.size()-1;
+    nodes[new_node.right].parent = nodes.size()-1;
+
+    return nodes.size()-1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -193,10 +244,69 @@ double ray_triangle_intersection(const Vector3d &ray_origin, const Vector3d &ray
 
 bool ray_box_intersection(const Vector3d &ray_origin, const Vector3d &ray_direction, const AlignedBox3d &box)
 {
-    // TODO
     // Compute whether the ray intersects the given box.
     // we are not testing with the real surface here anyway.
-    return false;
+
+    // Reference: Fundamentals of Computer Graphics, 4th edition, Section 12.3.1
+    double t_xmin, t_xmax, t_ymin, t_ymax, t_zmin, t_zmax;
+    Vector3d inv_ray_dir;
+    inv_ray_dir.x() = 1.0/ray_direction.x();
+    inv_ray_dir.y() = 1.0/ray_direction.y();
+    inv_ray_dir.z() = 1.0/ray_direction.z();
+
+    double temp;
+    t_xmin = (box.min().x() - ray_origin.x()) * inv_ray_dir.x();
+    t_xmax = (box.max().x() - ray_origin.x()) * inv_ray_dir.x();
+    if (t_xmax < t_xmin) {
+        temp = t_xmin;
+        t_xmin = t_xmax;
+        t_xmax = temp;
+    }
+
+    t_ymin = (box.min().y() - ray_origin.y()) * inv_ray_dir.y();
+    t_ymax = (box.max().y() - ray_origin.y()) * inv_ray_dir.y();
+    if (t_ymax < t_ymin) {
+        temp = t_ymin;
+        t_ymin = t_ymax;
+        t_ymax = temp;
+    }
+
+    t_zmin = (box.min().z() - ray_origin.z()) * inv_ray_dir.z();
+    t_zmax = (box.max().z() - ray_origin.z()) * inv_ray_dir.z();
+    if (t_zmax < t_zmin) {
+        temp = t_zmin;
+        t_zmin = t_zmax;
+        t_zmax = temp;
+    }
+
+
+//    if(inv_ray_dir.x() >= 0) {
+//        t_xmin = (box.min().x() - ray_origin.x()) * inv_ray_dir.x();
+//        t_xmax = (box.max().x() - ray_origin.x()) * inv_ray_dir.x();
+//    } else {
+//        t_xmin = (box.max().x() - ray_origin.x()) * inv_ray_dir.x();
+//        t_xmax = (box.min().x() - ray_origin.x()) * inv_ray_dir.x();
+//    }
+//    if(inv_ray_dir.y() >= 0) {
+//        t_ymin = (box.min().y() - ray_origin.y()) * inv_ray_dir.y();
+//        t_ymax = (box.max().y() - ray_origin.y()) * inv_ray_dir.y();
+//    } else {
+//        t_ymin = (box.max().y() - ray_origin.y()) * inv_ray_dir.y();
+//        t_ymax = (box.min().y() - ray_origin.y()) * inv_ray_dir.y();
+//    }
+//    if(inv_ray_dir.z() >= 0) {
+//        t_zmin = (box.min().z() - ray_origin.z()) * inv_ray_dir.z();
+//        t_zmax = (box.max().z() - ray_origin.z()) * inv_ray_dir.z();
+//    } else {
+//        t_zmin = (box.max().z() - ray_origin.z()) * inv_ray_dir.z();
+//        t_zmax = (box.min().z() - ray_origin.z()) * inv_ray_dir.z();
+//    }
+    double t_min = std::max(t_xmin, std::max(t_ymin, t_zmin));
+    double t_max = std::min(t_xmax, std::min(t_ymax, t_zmax));
+    if (t_max < 0) {
+        return false;
+    }
+    return (t_max >= t_min);
 }
 
 bool find_nearest_object_brute_force(const Vector3d &ray_origin, const Vector3d &ray_direction, Vector3d &p, Vector3d &N) {
@@ -229,23 +339,77 @@ bool find_nearest_object_brute_force(const Vector3d &ray_origin, const Vector3d 
     return true;
 }
 
-bool find_nearest_object_bvh(const Vector3d &ray_origin, const Vector3d &ray_direction, Vector3d &p, Vector3d &N) {
-    // TODO
-    return false;
+bool find_nearest_object_bvh(const int curr_node_id, const Vector3d &ray_origin, const Vector3d &ray_direction, Vector3d &p, Vector3d &N) {
+    if (bvh.nodes[curr_node_id].left == -1 && bvh.nodes[curr_node_id].right == -1) {
+        // Leaf node, check intersection with triangle
+        return ray_triangle_intersection(
+                ray_origin, ray_direction,
+                vertices.row(facets(bvh.nodes[curr_node_id].triangle, 0)),
+                vertices.row(facets(bvh.nodes[curr_node_id].triangle, 1)),
+                vertices.row(facets(bvh.nodes[curr_node_id].triangle, 2)),
+                p, N);
+    }
+    if (ray_box_intersection(ray_origin, ray_direction, bvh.nodes[curr_node_id].bbox)) {
+        Vector3d* p1 = new Vector3d();
+        Vector3d* p2 = new Vector3d();
+        Vector3d* N1 = new Vector3d();
+        Vector3d* N2 = new Vector3d();
+
+        bool found_left = find_nearest_object_bvh(bvh.nodes[curr_node_id].left, ray_origin, ray_direction, *p1, *N1);
+        bool found_right = find_nearest_object_bvh(bvh.nodes[curr_node_id].right, ray_origin, ray_direction, *p2, *N2);
+
+        if (found_left && found_right) {
+            // pick nearest
+            if ((*p1-ray_origin).norm() >= (*p2-ray_origin).norm()) {
+                p = *p2;
+                N = *N2;
+                delete p1;
+                delete N1;
+            } else {
+                p = *p1;
+                N = *N1;
+                delete p2;
+                delete N2;
+            }
+            return true;
+        } else if (found_left) {
+            p = *p1;
+            N = *N1;
+            delete p2;
+            delete N2;
+            return true;
+        } else if (found_right) {
+            p = *p2;
+            N = *N2;
+            delete p1;
+            delete N1;
+            return true;
+        } else {
+            delete p1;
+            delete N1;
+            delete p2;
+            delete N2;
+            return false;
+        }
+    } else {
+        return false;
+    }
 }
 
 //Finds the closest intersecting object returns its index
 //In case of intersection it writes into p and N (intersection point and normals)
 bool find_nearest_object(const Vector3d &ray_origin, const Vector3d &ray_direction, Vector3d &p, Vector3d &N)
 {
-    Vector3d tmp_p, tmp_N;
+    bool use_bvh = true;
 
-    // Method (1) Traverse every triangle and return the closest hit.
-    return find_nearest_object_brute_force(ray_origin,ray_direction, p, N);
-
-    // Method (2): Traverse the BVH tree and test the intersection with a
-    // triangles at the leaf nodes that intersects the input ray.
-//    return find_nearest_object_bvh(ray_origin,ray_direction, p, N);
+    if (!use_bvh) {
+        // Method (1) Traverse every triangle and return the closest hit.
+        return find_nearest_object_brute_force(ray_origin, ray_direction, p, N);
+    } else {
+        // Method (2): Traverse the BVH tree and test the intersection with a
+        // triangles at the leaf nodes that intersects the input ray.
+        return find_nearest_object_bvh(bvh.root, ray_origin, ray_direction, p, N);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
