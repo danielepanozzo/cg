@@ -21,7 +21,7 @@ URL: [http://cs.nyu.edu/~panozzo/](http://cs.nyu.edu/~panozzo/)
 Office Hours (starting from February 2nd): 
 * **Mondays**  Arvi 9-10AM, Discord
 * **Tuesdays** Arvi 3-4PM, 60 5th Ave, 502
-* **Wednesdays** Jiacheng 9AM, Discord 
+* **Wednesdays** Jiacheng 2-3PM, 60 5th Ave, 502 
 * **Thursdays** Daniele 3-4PM, 60 5th Ave, 504  
 * **Fridays** Jiacheng 2-3PM, 60 5th Ave, 502
 
