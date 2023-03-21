@@ -51,7 +51,7 @@ int main()
 	vertices.push_back(VertexAttributes(0,1,0));
 
 	// Add a transformation to compensate for the aspect ratio of the framebuffer
-	float aspect_ratio = float(frameBuffer.cols())/float(frameBuffer.rows());
+	double aspect_ratio = double(frameBuffer.cols())/double(frameBuffer.rows());
 
 	uniform.view <<
 	1, 0, 0, 0,

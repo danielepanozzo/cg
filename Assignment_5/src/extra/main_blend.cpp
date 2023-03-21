@@ -39,10 +39,10 @@ int main()
 	// The blending shader converts colors between 0 and 1 to uint8
 	program.BlendingShader = [](const FragmentAttributes& fa, const FrameBufferAttributes& previous)
 	{
-		float alpha = fa.color[3];
+		double alpha = fa.color[3];
 
 		// Blend the current fragment color with the previous texel
-		Eigen::Vector4f blend = fa.color.array() * alpha + (previous.color.cast<float>().array()/255) * (1-alpha);
+		Eigen::Vector4d blend = fa.color.array() * alpha + (previous.color.cast<double>().array()/255) * (1-alpha);
 
 		return FrameBufferAttributes(blend[0]*255, blend[1]*255, blend[2]*255, blend[3]*255);
 	};

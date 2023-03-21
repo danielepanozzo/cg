@@ -55,7 +55,7 @@ int main()
 	GifWriter g;
 	GifBegin(&g, fileName, frameBuffer.rows(), frameBuffer.cols(), delay);
 
-	for (float i=0;i<1;i+=0.05)
+	for (double i=0;i<1;i+=0.05)
 	{
 		frameBuffer.setConstant(FrameBufferAttributes());
 		vertices[2].position[1] -= 0.05;

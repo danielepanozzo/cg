@@ -5,7 +5,7 @@
 class VertexAttributes
 {
 	public:
-	VertexAttributes(float x = 0, float y = 0, float z = 0, float w = 1)
+	VertexAttributes(double x = 0, double y = 0, double z = 0, double w = 1)
 	{
 		position << x,y,z,w;
 	}
@@ -15,9 +15,9 @@ class VertexAttributes
         const VertexAttributes& a,
         const VertexAttributes& b,
         const VertexAttributes& c,
-        const float alpha, 
-        const float beta, 
-        const float gamma
+        const double alpha, 
+        const double beta, 
+        const double gamma
     ) 
     {
         VertexAttributes r;
@@ -25,18 +25,18 @@ class VertexAttributes
         return r;
     }
 
-	Eigen::Vector4f position;
+	Eigen::Vector4d position;
 };
 
 class FragmentAttributes
 {
 	public:
-	FragmentAttributes(float r = 0, float g = 0, float b = 0, float a = 1)
+	FragmentAttributes(double r = 0, double g = 0, double b = 0, double a = 1)
 	{
 		color << r,g,b,a;
 	}
 
-	Eigen::Vector4f color;
+	Eigen::Vector4d color;
 };
 
 class FrameBufferAttributes
@@ -53,5 +53,5 @@ class FrameBufferAttributes
 class UniformAttributes
 {
 	public:
-	Eigen::Matrix4f projective;
+	Eigen::Matrix4d projective;
 };

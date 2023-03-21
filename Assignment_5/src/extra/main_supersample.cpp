@@ -25,10 +25,10 @@ FrameBuffer scale_down_4x(const FrameBuffer& fb)
 	{
 		for (unsigned j=0;j<out.cols();j++)
 		{
-			Eigen::Vector4f avg = Eigen::Vector4f::Zero();
+			Eigen::Vector4d avg = Eigen::Vector4d::Zero();
 			for (unsigned ii=0;ii<4;ii++)
 				for (unsigned jj=0;jj<4;jj++)
-					avg += fb(i*4+ii,j*4+jj).color.cast<float>();
+					avg += fb(i*4+ii,j*4+jj).color.cast<double>();
 			avg /= 16;
 			out(i,j).color = avg.cast<uint8_t>();
 		}
