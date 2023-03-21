@@ -4,7 +4,7 @@
 void rasterize_triangle(const Program& program, const UniformAttributes& uniform, const VertexAttributes& v1, const VertexAttributes& v2, const VertexAttributes& v3, FrameBuffer& frameBuffer)
 {
 		// Collect coordinates into a matrix and convert to canonical representation
-		Eigen::Matrix<float,3,4> p;
+		Eigen::Matrix<double,3,4> p;
 		p.row(0) = v1.position.array()/v1.position[3];
 		p.row(1) = v2.position.array()/v2.position[3];
 		p.row(2) = v3.position.array()/v3.position[3];
@@ -26,13 +26,13 @@ void rasterize_triangle(const Program& program, const UniformAttributes& uniform
 		uy = std::min(std::max(uy,int(0)),int(frameBuffer.cols()-1));
 
 		// Build the implicit triangle representation
-		Eigen::Matrix3f A;
+		Eigen::Matrix3d A;
 		A.col(0) = p.row(0).segment(0,3);
 		A.col(1) = p.row(1).segment(0,3);
 		A.col(2) = p.row(2).segment(0,3);
 		A.row(2) << 1.0, 1.0, 1.0;
 
-		Eigen::Matrix3f Ai = A.inverse();
+		Eigen::Matrix3d Ai = A.inverse();
 
 		// Rasterize the triangle
 		for (unsigned i=lx; i<=ux; i++)
@@ -40,8 +40,8 @@ void rasterize_triangle(const Program& program, const UniformAttributes& uniform
 			for (unsigned j=ly; j<=uy; j++)
 			{
 				// The pixel center is offset by 0.5, 0.5
-				Eigen::Vector3f pixel(i+0.5,j+0.5,1);
-				Eigen::Vector3f b = Ai*pixel;
+				Eigen::Vector3d pixel(i+0.5,j+0.5,1);
+				Eigen::Vector3d b = Ai*pixel;
 				if (b.minCoeff() >= 0)
 				{
 					VertexAttributes va = VertexAttributes::interpolate(v1,v2,v3,b[0],b[1],b[2]);
@@ -68,10 +68,10 @@ void rasterize_triangles(const Program& program, const UniformAttributes& unifor
 		rasterize_triangle(program,uniform,v[i*3+0],v[i*3+1],v[i*3+2],frameBuffer);
 }
 
-void rasterize_line(const Program& program, const UniformAttributes& uniform, const VertexAttributes& v1, const VertexAttributes& v2, float line_thickness, FrameBuffer& frameBuffer)
+void rasterize_line(const Program& program, const UniformAttributes& uniform, const VertexAttributes& v1, const VertexAttributes& v2, double line_thickness, FrameBuffer& frameBuffer)
 {
 		// Collect coordinates into a matrix and convert to canonical representation
-		Eigen::Matrix<float,2,4> p;
+		Eigen::Matrix<double,2,4> p;
 		p.row(0) = v1.position.array()/v1.position[3];
 		p.row(1) = v2.position.array()/v2.position[3];
 
@@ -96,8 +96,8 @@ void rasterize_line(const Program& program, const UniformAttributes& uniform, co
 		Eigen::Vector2f l2(p(1,0),p(1,1));
 
 		// Parametrize the line as l1 + t (l2-l1)
-		float t = -1;
-		float ll  = (l1-l2).squaredNorm();
+		double t = -1;
+		double ll  = (l1-l2).squaredNorm();
 
 		// Rasterize the line
 		for (unsigned i=lx; i<=ux; i++)
@@ -130,7 +130,7 @@ void rasterize_line(const Program& program, const UniformAttributes& uniform, co
 		}
 }
 
-void rasterize_lines(const Program& program, const UniformAttributes& uniform, const std::vector<VertexAttributes>& vertices, float line_thickness, FrameBuffer& frameBuffer)
+void rasterize_lines(const Program& program, const UniformAttributes& uniform, const std::vector<VertexAttributes>& vertices, double line_thickness, FrameBuffer& frameBuffer)
 {
 	// Call vertex shader on all vertices
 	std::vector<VertexAttributes> v(vertices.size());

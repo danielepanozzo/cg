@@ -59,7 +59,7 @@ int main(int argc, char *args[])
     };
 
     viewer.mouse_pressed = [&](int x, int y, bool is_pressed, int button, int clicks) {
-        vertices[2].position << (float(x)/float(width) * 2) - 1, (float(height-1-y)/float(height) * 2) - 1, 0, 1;
+        vertices[2].position << (double(x)/double(width) * 2) - 1, (double(height-1-y)/double(height) * 2) - 1, 0, 1;
         viewer.redraw_next = true;
     };
 

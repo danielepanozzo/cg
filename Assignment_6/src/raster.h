@@ -31,11 +31,11 @@ void rasterize_triangles(const Program& program, const UniformAttributes& unifor
 
 // Rasterizes a single line v1,v2 of thickness line_thickness using the provided program and uniforms.
 // Note: v1, v2 needs to be in the canonical view volume (i.e. after being processed by the vertex shader)
-void rasterize_line(const Program& program, const UniformAttributes& uniform, const VertexAttributes& v1, const VertexAttributes& v2, float line_thickness, FrameBuffer& frameBuffer);
+void rasterize_line(const Program& program, const UniformAttributes& uniform, const VertexAttributes& v1, const VertexAttributes& v2, double line_thickness, FrameBuffer& frameBuffer);
 
 // Rasterizes a collection of lines, assembling one line for each 2 consecutive vertices.
 // Note: the vertices will be processed by the vertex shader
-void rasterize_lines(const Program& program, const UniformAttributes& uniform, const std::vector<VertexAttributes>& vertices, float line_thickness, FrameBuffer& frameBuffer);
+void rasterize_lines(const Program& program, const UniformAttributes& uniform, const std::vector<VertexAttributes>& vertices, double line_thickness, FrameBuffer& frameBuffer);
 
 // Exports the framebuffer to a uint8 raw image
 void framebuffer_to_uint8(const FrameBuffer& frameBuffer, std::vector<uint8_t>& image);
