@@ -278,28 +278,6 @@ bool ray_box_intersection(const Vector3d &ray_origin, const Vector3d &ray_direct
         t_zmax = temp;
     }
 
-
-//    if(inv_ray_dir.x() >= 0) {
-//        t_xmin = (box.min().x() - ray_origin.x()) * inv_ray_dir.x();
-//        t_xmax = (box.max().x() - ray_origin.x()) * inv_ray_dir.x();
-//    } else {
-//        t_xmin = (box.max().x() - ray_origin.x()) * inv_ray_dir.x();
-//        t_xmax = (box.min().x() - ray_origin.x()) * inv_ray_dir.x();
-//    }
-//    if(inv_ray_dir.y() >= 0) {
-//        t_ymin = (box.min().y() - ray_origin.y()) * inv_ray_dir.y();
-//        t_ymax = (box.max().y() - ray_origin.y()) * inv_ray_dir.y();
-//    } else {
-//        t_ymin = (box.max().y() - ray_origin.y()) * inv_ray_dir.y();
-//        t_ymax = (box.min().y() - ray_origin.y()) * inv_ray_dir.y();
-//    }
-//    if(inv_ray_dir.z() >= 0) {
-//        t_zmin = (box.min().z() - ray_origin.z()) * inv_ray_dir.z();
-//        t_zmax = (box.max().z() - ray_origin.z()) * inv_ray_dir.z();
-//    } else {
-//        t_zmin = (box.max().z() - ray_origin.z()) * inv_ray_dir.z();
-//        t_zmax = (box.min().z() - ray_origin.z()) * inv_ray_dir.z();
-//    }
     double t_min = std::max(t_xmin, std::max(t_ymin, t_zmin));
     double t_max = std::min(t_xmax, std::min(t_ymax, t_zmax));
     if (t_max < 0) {
