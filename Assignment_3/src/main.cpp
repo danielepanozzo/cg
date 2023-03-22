@@ -51,7 +51,7 @@ const Vector4d obj_reflection_color(0.7, 0.7, 0.7, 0);
 const Vector4d obj_refraction_color(0.7, 0.7, 0.7, 0);
 
 // Refraction parameters
-bool enable_refraction = true;
+bool enable_refraction = false;
 double src_refr_index = 1; // source refractive index (vacuum/air assumed)
 double obj_refr_index = 1.5; // sphere refractive index (glass value used)
 double refr_critical_angle = 1.57; // vacuum to glass
@@ -157,8 +157,8 @@ Vector4d shoot_ray(const Vector3d &ray_origin, const Vector3d &ray_direction, in
 // Weight w should be in the range [0.0, 1.0]
 double lerp(double a0, double a1, double w)
 {
-    assert(w >= 0);
-    assert(w <= 1);
+    assert(w >= 0-0.001); // Small tolerance for floating point errors
+    assert(w <= 1+0.001);
 
     return a0 + w * (a1-a0); // Linear interpolation
 //    return (a1 - a0) * (3.0 - w * 2.0) * w * w + a0; // Cubic Interpolation
@@ -202,14 +202,14 @@ double perlin(double x, double y)
 
 Vector4d procedural_texture(const double tu, const double tv)
 {
-    assert(tu >= 0);
-    assert(tv >= 0);
+    assert(tu >= 0-0.001); // Small tolerance for floating point errors
+    assert(tv >= 0-0.001);
 
-    assert(tu <= 1);
-    assert(tv <= 1);
+    assert(tu <= 1+0.001); // Small tolerance for floating point errors
+    assert(tv <= 1+0.001);
 
-     const double color = (perlin(tu * grid_size, tv * grid_size) + 1) / 2;
-     return Vector4d(0, color, 0, 0);
+    const double color = (perlin(tu * grid_size, tv * grid_size) + 1) / 2;
+    return Vector4d(0, color, 0, 0);
 
     //Example for checkerboard texture
 //    const double color = (int(tu * grid_size) + int(tv * grid_size)) % 2 == 0 ? 0 : 1;
