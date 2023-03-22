@@ -153,8 +153,6 @@ AABBTree::AABBTree(const MatrixXd &V, const MatrixXi &F)
         centroids.row(i) /= F.cols();
     }
 
-    // Split each set of primitives into 2 sets of roughly equal size,
-    // based on sorting the centroids along one direction or another.
     int triangle_idx[F.rows()];
     for (int i=0; i<F.rows(); i++) {
         triangle_idx[i] = i;
