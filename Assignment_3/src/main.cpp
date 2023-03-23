@@ -51,10 +51,11 @@ const Vector4d obj_reflection_color(0.7, 0.7, 0.7, 0);
 const Vector4d obj_refraction_color(0.7, 0.7, 0.7, 0);
 
 // Refraction parameters
-bool enable_refraction = false;
-double src_refr_index = 1; // source refractive index (vacuum/air assumed)
+bool enable_refraction = true;
+double air_refr_index = 1; // source refractive index (vacuum/air assumed)
 double obj_refr_index = 1.5; // sphere refractive index (glass value used)
 double refr_critical_angle = 1.57; // vacuum to glass
+bool medium_tracker = false; // false if entering from air to glass, true if glass to air
 
 // Precomputed (or otherwise) gradient vectors at each grid node
 const int grid_size = 20;
@@ -415,10 +416,13 @@ Vector4d shoot_ray(const Vector3d &ray_origin, const Vector3d &ray_direction, in
     if (enable_refraction) {
         // Compute the color of the refracted ray and add its contribution to the current point color.
         double cos_in = N.dot((-ray_direction).normalized()); // cos of angle of incidence
-        if (acos(cos_in) < refr_critical_angle) {
+        double src_refr_index = medium_tracker ? obj_refr_index : air_refr_index;
+        double dst_refr_index = medium_tracker ? air_refr_index : obj_refr_index;
+        if (!(medium_tracker && acos(cos_in) >= refr_critical_angle)) {
             // cos of angle of refraction
-            double cos_refr = std::sqrt(1.0-(std::pow(src_refr_index,2)*(1-std::pow(cos_in,2))/std::pow(obj_refr_index,2)));
-            Vector3d new_ray_direction = ((src_refr_index/obj_refr_index) * (ray_direction + N*cos_in)) - N*cos_refr;
+            double cos_refr = std::sqrt(1.0-(std::pow(src_refr_index,2)*(1-std::pow(cos_in,2))/std::pow(dst_refr_index,2)));
+            Vector3d new_ray_direction = ((src_refr_index/dst_refr_index) * (ray_direction + N*cos_in)) - N*cos_refr;
+            medium_tracker = !medium_tracker;
             refraction_color = shoot_ray(p + epsilon * new_ray_direction, new_ray_direction,
                                                  max_bounce - 1).cwiseProduct(obj_refraction_color);
         }
