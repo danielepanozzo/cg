@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,20 +19,18 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 #include "../../SDL_internal.h"
+
 #include "SDL_stdinc.h"
-#include "SDL_assert.h"
 #include "SDL_atomic.h"
 #include "SDL_hints.h"
-#include "SDL_log.h"
 #include "SDL_main.h"
 #include "SDL_timer.h"
+#include "SDL_version.h"
 
 #ifdef __ANDROID__
 
 #include "SDL_system.h"
 #include "SDL_android.h"
-
-#include "keyinfotable.h"
 
 #include "../../events/SDL_events_c.h"
 #include "../../video/android/SDL_androidkeyboard.h"
@@ -44,6 +42,8 @@
 #include "../../haptic/android/SDL_syshaptic_c.h"
 
 #include <android/log.h>
+#include <android/configuration.h>
+#include <android/asset_manager_jni.h>
 #include <sys/system_properties.h>
 #include <pthread.h>
 #include <sys/types.h>
@@ -64,6 +64,9 @@
 #define ENCODING_PCM_FLOAT  4
 
 /* Java class SDLActivity */
+JNIEXPORT jstring JNICALL SDL_JAVA_INTERFACE(nativeGetVersion)(
+        JNIEnv *env, jclass cls);
+
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(
         JNIEnv *env, jclass cls);
 
@@ -78,7 +81,7 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeDropFile)(
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetScreenResolution)(
         JNIEnv *env, jclass jcls,
         jint surfaceWidth, jint surfaceHeight,
-        jint deviceWidth, jint deviceHeight, jint format, jfloat rate);
+        jint deviceWidth, jint deviceHeight, jfloat rate);
 
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeResize)(
         JNIEnv *env, jclass cls);
@@ -125,6 +128,9 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeClipboardChanged)(
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeLowMemory)(
         JNIEnv *env, jclass cls);
 
+JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeLocaleChanged)(
+        JNIEnv *env, jclass cls);
+
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSendQuit)(
         JNIEnv *env, jclass cls);
 
@@ -144,6 +150,10 @@ JNIEXPORT jstring JNICALL SDL_JAVA_INTERFACE(nativeGetHint)(
         JNIEnv *env, jclass cls,
         jstring name);
 
+JNIEXPORT jboolean JNICALL SDL_JAVA_INTERFACE(nativeGetHintBoolean)(
+        JNIEnv *env, jclass cls,
+        jstring name, jboolean default_value);
+
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetenv)(
         JNIEnv *env, jclass cls,
         jstring name, jstring value);
@@ -161,10 +171,11 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativePermissionResult)(
         jint requestCode, jboolean result);
 
 static JNINativeMethod SDLActivity_tab[] = {
+    { "nativeGetVersion",           "()Ljava/lang/String;", SDL_JAVA_INTERFACE(nativeGetVersion) },
     { "nativeSetupJNI",             "()I", SDL_JAVA_INTERFACE(nativeSetupJNI) },
     { "nativeRunMain",              "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)I", SDL_JAVA_INTERFACE(nativeRunMain) },
     { "onNativeDropFile",           "(Ljava/lang/String;)V", SDL_JAVA_INTERFACE(onNativeDropFile) },
-    { "nativeSetScreenResolution",  "(IIIIIF)V", SDL_JAVA_INTERFACE(nativeSetScreenResolution) },
+    { "nativeSetScreenResolution",  "(IIIIF)V", SDL_JAVA_INTERFACE(nativeSetScreenResolution) },
     { "onNativeResize",             "()V", SDL_JAVA_INTERFACE(onNativeResize) },
     { "onNativeSurfaceCreated",     "()V", SDL_JAVA_INTERFACE(onNativeSurfaceCreated) },
     { "onNativeSurfaceChanged",     "()V", SDL_JAVA_INTERFACE(onNativeSurfaceChanged) },
@@ -178,12 +189,14 @@ static JNINativeMethod SDLActivity_tab[] = {
     { "onNativeAccel",              "(FFF)V", SDL_JAVA_INTERFACE(onNativeAccel) },
     { "onNativeClipboardChanged",   "()V", SDL_JAVA_INTERFACE(onNativeClipboardChanged) },
     { "nativeLowMemory",            "()V", SDL_JAVA_INTERFACE(nativeLowMemory) },
+    { "onNativeLocaleChanged",      "()V", SDL_JAVA_INTERFACE(onNativeLocaleChanged) },
     { "nativeSendQuit",             "()V", SDL_JAVA_INTERFACE(nativeSendQuit) },
     { "nativeQuit",                 "()V", SDL_JAVA_INTERFACE(nativeQuit) },
     { "nativePause",                "()V", SDL_JAVA_INTERFACE(nativePause) },
     { "nativeResume",               "()V", SDL_JAVA_INTERFACE(nativeResume) },
     { "nativeFocusChanged",         "(Z)V", SDL_JAVA_INTERFACE(nativeFocusChanged) },
     { "nativeGetHint",              "(Ljava/lang/String;)Ljava/lang/String;", SDL_JAVA_INTERFACE(nativeGetHint) },
+    { "nativeGetHintBoolean",       "(Ljava/lang/String;Z)Z", SDL_JAVA_INTERFACE(nativeGetHintBoolean) },
     { "nativeSetenv",               "(Ljava/lang/String;Ljava/lang/String;)V", SDL_JAVA_INTERFACE(nativeSetenv) },
     { "onNativeOrientationChanged", "(I)V", SDL_JAVA_INTERFACE(onNativeOrientationChanged) },
     { "nativeAddTouch",             "(ILjava/lang/String;)V", SDL_JAVA_INTERFACE(nativeAddTouch) },
@@ -199,14 +212,9 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE_INPUT_CONNECTION(nativeGenerateScancod
         JNIEnv *env, jclass cls,
         jchar chUnicode);
 
-JNIEXPORT void JNICALL SDL_JAVA_INTERFACE_INPUT_CONNECTION(nativeSetComposingText)(
-        JNIEnv *env, jclass cls,
-        jstring text, jint newCursorPosition);
-
 static JNINativeMethod SDLInputConnection_tab[] = {
     { "nativeCommitText",                   "(Ljava/lang/String;I)V", SDL_JAVA_INTERFACE_INPUT_CONNECTION(nativeCommitText) },
-    { "nativeGenerateScancodeForUnichar",   "(C)V", SDL_JAVA_INTERFACE_INPUT_CONNECTION(nativeGenerateScancodeForUnichar) },
-    { "nativeSetComposingText",             "(Ljava/lang/String;I)V", SDL_JAVA_INTERFACE_INPUT_CONNECTION(nativeSetComposingText) }
+    { "nativeGenerateScancodeForUnichar",   "(C)V", SDL_JAVA_INTERFACE_INPUT_CONNECTION(nativeGenerateScancodeForUnichar) }
 };
 
 /* Java class SDLAudioManager */
@@ -293,6 +301,7 @@ static jmethodID midClipboardGetText;
 static jmethodID midClipboardHasText;
 static jmethodID midClipboardSetText;
 static jmethodID midCreateCustomCursor;
+static jmethodID midDestroyCustomCursor;
 static jmethodID midGetContext;
 static jmethodID midGetDisplayDPI;
 static jmethodID midGetManifestEnvironmentVariables;
@@ -305,14 +314,14 @@ static jmethodID midIsScreenKeyboardShown;
 static jmethodID midIsTablet;
 static jmethodID midManualBackButton;
 static jmethodID midMinimizeWindow;
-static jmethodID midOpenAPKExpansionInputStream;
+static jmethodID midOpenURL;
 static jmethodID midRequestPermission;
+static jmethodID midShowToast;
 static jmethodID midSendMessage;
 static jmethodID midSetActivityTitle;
 static jmethodID midSetCustomCursor;
 static jmethodID midSetOrientation;
 static jmethodID midSetRelativeMouseEnabled;
-static jmethodID midSetSurfaceViewFormat;
 static jmethodID midSetSystemCursor;
 static jmethodID midSetWindowStyle;
 static jmethodID midShouldMinimizeOnFocusLoss;
@@ -353,6 +362,12 @@ static SDL_bool bHasEnvironmentVariables;
 
 static SDL_atomic_t bPermissionRequestPending;
 static SDL_bool bPermissionRequestResult;
+
+/* Android AssetManager */
+static void Internal_Android_Create_AssetManager(void);
+static void Internal_Android_Destroy_AssetManager(void);
+static AAssetManager *asset_manager = NULL;
+static jobject javaAssetManagerRef = 0;
 
 /*******************************************************************************
                  Functions called by JNI
@@ -494,8 +509,9 @@ register_methods(JNIEnv *env, const char *classname, JNINativeMethod *methods, i
 /* Library init */
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved)
 {
-    mJavaVM = vm;
     JNIEnv *env = NULL;
+
+    mJavaVM = vm;
 
     if ((*mJavaVM)->GetEnv(mJavaVM, (void **)&env, JNI_VERSION_1_4) != JNI_OK) {
         __android_log_print(ANDROID_LOG_ERROR, "SDL", "Failed to get JNI Env");
@@ -518,6 +534,16 @@ void checkJNIReady(void)
     }
 
     SDL_SetMainReady();
+}
+
+/* Get SDL version -- called before SDL_main() to verify JNI bindings */
+JNIEXPORT jstring JNICALL SDL_JAVA_INTERFACE(nativeGetVersion)(JNIEnv *env, jclass cls)
+{
+    char version[128];
+
+    SDL_snprintf(version, sizeof(version), "%d.%d.%d", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL);
+
+    return (*env)->NewStringUTF(env, version);
 }
 
 /* Activity initialization -- called before SDL_main() to initialize JNI bindings */
@@ -566,6 +592,7 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cl
     midClipboardHasText = (*env)->GetStaticMethodID(env, mActivityClass, "clipboardHasText", "()Z");
     midClipboardSetText = (*env)->GetStaticMethodID(env, mActivityClass, "clipboardSetText", "(Ljava/lang/String;)V");
     midCreateCustomCursor = (*env)->GetStaticMethodID(env, mActivityClass, "createCustomCursor", "([IIIII)I");
+    midDestroyCustomCursor = (*env)->GetStaticMethodID(env, mActivityClass, "destroyCustomCursor", "(I)V");
     midGetContext = (*env)->GetStaticMethodID(env, mActivityClass, "getContext","()Landroid/content/Context;");
     midGetDisplayDPI = (*env)->GetStaticMethodID(env, mActivityClass, "getDisplayDPI", "()Landroid/util/DisplayMetrics;");
     midGetManifestEnvironmentVariables = (*env)->GetStaticMethodID(env, mActivityClass, "getManifestEnvironmentVariables", "()Z");
@@ -578,14 +605,14 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cl
     midIsTablet = (*env)->GetStaticMethodID(env, mActivityClass, "isTablet", "()Z");
     midManualBackButton = (*env)->GetStaticMethodID(env, mActivityClass, "manualBackButton", "()V");
     midMinimizeWindow = (*env)->GetStaticMethodID(env, mActivityClass, "minimizeWindow","()V");
-    midOpenAPKExpansionInputStream = (*env)->GetStaticMethodID(env, mActivityClass, "openAPKExpansionInputStream", "(Ljava/lang/String;)Ljava/io/InputStream;");
+    midOpenURL = (*env)->GetStaticMethodID(env, mActivityClass, "openURL", "(Ljava/lang/String;)I");
     midRequestPermission = (*env)->GetStaticMethodID(env, mActivityClass, "requestPermission", "(Ljava/lang/String;I)V");
+    midShowToast = (*env)->GetStaticMethodID(env, mActivityClass, "showToast", "(Ljava/lang/String;IIII)I");
     midSendMessage = (*env)->GetStaticMethodID(env, mActivityClass, "sendMessage", "(II)Z");
     midSetActivityTitle = (*env)->GetStaticMethodID(env, mActivityClass, "setActivityTitle","(Ljava/lang/String;)Z");
     midSetCustomCursor = (*env)->GetStaticMethodID(env, mActivityClass, "setCustomCursor", "(I)Z");
     midSetOrientation = (*env)->GetStaticMethodID(env, mActivityClass, "setOrientation","(IIZLjava/lang/String;)V");
     midSetRelativeMouseEnabled = (*env)->GetStaticMethodID(env, mActivityClass, "setRelativeMouseEnabled", "(Z)Z");
-    midSetSurfaceViewFormat = (*env)->GetStaticMethodID(env, mActivityClass, "setSurfaceViewFormat","(I)V");
     midSetSystemCursor = (*env)->GetStaticMethodID(env, mActivityClass, "setSystemCursor", "(I)Z");
     midSetWindowStyle = (*env)->GetStaticMethodID(env, mActivityClass, "setWindowStyle","(Z)V");
     midShouldMinimizeOnFocusLoss = (*env)->GetStaticMethodID(env, mActivityClass, "shouldMinimizeOnFocusLoss","()Z");
@@ -596,6 +623,7 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cl
         !midClipboardHasText ||
         !midClipboardSetText ||
         !midCreateCustomCursor ||
+        !midDestroyCustomCursor ||
         !midGetContext ||
         !midGetDisplayDPI ||
         !midGetManifestEnvironmentVariables ||
@@ -608,14 +636,14 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cl
         !midIsTablet ||
         !midManualBackButton ||
         !midMinimizeWindow ||
-        !midOpenAPKExpansionInputStream ||
+        !midOpenURL ||
         !midRequestPermission ||
+        !midShowToast ||
         !midSendMessage ||
         !midSetActivityTitle ||
         !midSetCustomCursor ||
         !midSetOrientation ||
         !midSetRelativeMouseEnabled ||
-        !midSetSurfaceViewFormat ||
         !midSetSystemCursor ||
         !midSetWindowStyle ||
         !midShouldMinimizeOnFocusLoss ||
@@ -831,11 +859,11 @@ retry:
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetScreenResolution)(
                                     JNIEnv *env, jclass jcls,
                                     jint surfaceWidth, jint surfaceHeight,
-                                    jint deviceWidth, jint deviceHeight, jint format, jfloat rate)
+                                    jint deviceWidth, jint deviceHeight, jfloat rate)
 {
     SDL_LockMutex(Android_ActivityMutex);
 
-    Android_SetScreenResolution(surfaceWidth, surfaceHeight, deviceWidth, deviceHeight, format, rate);
+    Android_SetScreenResolution(surfaceWidth, surfaceHeight, deviceWidth, deviceHeight, rate);
 
     SDL_UnlockMutex(Android_ActivityMutex);
 }
@@ -990,6 +1018,7 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeSurfaceChanged)(JNIEnv *env, j
 {
     SDL_LockMutex(Android_ActivityMutex);
 
+#if SDL_VIDEO_OPENGL_EGL
     if (Android_Window)
     {
         SDL_VideoDevice *_this = SDL_GetVideoDevice();
@@ -1002,6 +1031,7 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeSurfaceChanged)(JNIEnv *env, j
 
         /* GL Context handling is done in the event loop because this function is run from the Java thread */
     }
+#endif
 
     SDL_UnlockMutex(Android_ActivityMutex);
 }
@@ -1032,10 +1062,12 @@ retry:
             }
         }
 
+#if SDL_VIDEO_OPENGL_EGL
         if (data->egl_surface != EGL_NO_SURFACE) {
             SDL_EGL_DestroySurface(_this, data->egl_surface);
             data->egl_surface = EGL_NO_SURFACE;
         }
+#endif
 
         if (data->native_window) {
             ANativeWindow_release(data->native_window);
@@ -1134,6 +1166,15 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeLowMemory)(
     SDL_SendAppEvent(SDL_APP_LOWMEMORY);
 }
 
+/* Locale
+ * requires android:configChanges="layoutDirection|locale" in AndroidManifest.xml */
+JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(onNativeLocaleChanged)(
+                                    JNIEnv *env, jclass cls)
+{
+    SDL_SendAppEvent(SDL_LOCALECHANGED);
+}
+
+
 /* Send Quit event to "SDLThread" thread */
 JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSendQuit)(
                                     JNIEnv *env, jclass cls)
@@ -1174,6 +1215,8 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeQuit)(
         SDL_DestroySemaphore(Android_ResumeSem);
         Android_ResumeSem = NULL;
     }
+
+    Internal_Android_Destroy_AssetManager();
 
     str = SDL_GetError();
     if (str && str[0]) {
@@ -1235,40 +1278,7 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE_INPUT_CONNECTION(nativeGenerateScancod
                                     JNIEnv *env, jclass cls,
                                     jchar chUnicode)
 {
-    SDL_Scancode code = SDL_SCANCODE_UNKNOWN;
-    uint16_t mod = 0;
-
-    /* We do not care about bigger than 127. */
-    if (chUnicode < 127) {
-        AndroidKeyInfo info = unicharToAndroidKeyInfoTable[chUnicode];
-        code = info.code;
-        mod = info.mod;
-    }
-
-    if (mod & KMOD_SHIFT) {
-        /* If character uses shift, press shift down */
-        SDL_SendKeyboardKey(SDL_PRESSED, SDL_SCANCODE_LSHIFT);
-    }
-
-    /* send a keydown and keyup even for the character */
-    SDL_SendKeyboardKey(SDL_PRESSED, code);
-    SDL_SendKeyboardKey(SDL_RELEASED, code);
-
-    if (mod & KMOD_SHIFT) {
-        /* If character uses shift, press shift back up */
-        SDL_SendKeyboardKey(SDL_RELEASED, SDL_SCANCODE_LSHIFT);
-    }
-}
-
-JNIEXPORT void JNICALL SDL_JAVA_INTERFACE_INPUT_CONNECTION(nativeSetComposingText)(
-                                    JNIEnv *env, jclass cls,
-                                    jstring text, jint newCursorPosition)
-{
-    const char *utftext = (*env)->GetStringUTFChars(env, text, NULL);
-
-    SDL_SendEditingText(utftext, 0, 0);
-
-    (*env)->ReleaseStringUTFChars(env, text, utftext);
+    SDL_SendKeyboardUnicodeKey(chUnicode);
 }
 
 JNIEXPORT jstring JNICALL SDL_JAVA_INTERFACE(nativeGetHint)(
@@ -1279,6 +1289,19 @@ JNIEXPORT jstring JNICALL SDL_JAVA_INTERFACE(nativeGetHint)(
     const char *hint = SDL_GetHint(utfname);
 
     jstring result = (*env)->NewStringUTF(env, hint);
+    (*env)->ReleaseStringUTFChars(env, name, utfname);
+
+    return result;
+}
+
+JNIEXPORT jboolean JNICALL SDL_JAVA_INTERFACE(nativeGetHintBoolean)(
+                                    JNIEnv *env, jclass cls,
+                                    jstring name, jboolean default_value)
+{
+    jboolean result;
+
+    const char *utfname = (*env)->GetStringUTFChars(env, name, NULL);
+    result = SDL_GetHintBoolean(utfname, default_value);
     (*env)->ReleaseStringUTFChars(env, name, utfname);
 
     return result;
@@ -1357,26 +1380,6 @@ ANativeWindow* Android_JNI_GetNativeWindow(void)
     }
 
     return anw;
-}
-
-void Android_JNI_SetSurfaceViewFormat(int format)
-{
-    JNIEnv *env = Android_JNI_GetEnv();
-    int new_format = 0;
-
-    /* Format from android/native_window.h,
-     * convert to temporary arbitrary values,
-     * then to java PixelFormat */
-    if (format == WINDOW_FORMAT_RGBA_8888) {
-        new_format = 1;
-    } else if (format == WINDOW_FORMAT_RGBX_8888) {
-        new_format = 2;
-    } else if (format == WINDOW_FORMAT_RGB_565) {
-        /* Default */
-        new_format = 0;
-    }
-
-    (*env)->CallStaticVoidMethod(env, mActivityClass, midSetSurfaceViewFormat, new_format);
 }
 
 void Android_JNI_SetActivityTitle(const char *title)
@@ -1797,245 +1800,90 @@ static SDL_bool Android_JNI_ExceptionOccurred(SDL_bool silent)
     return SDL_FALSE;
 }
 
-static int Internal_Android_JNI_FileOpen(SDL_RWops *ctx)
-{
+static void Internal_Android_Create_AssetManager() {
+
     struct LocalReferenceHolder refs = LocalReferenceHolder_Setup(__FUNCTION__);
-
-    int result = 0;
-
+    JNIEnv *env = Android_JNI_GetEnv();
     jmethodID mid;
     jobject context;
-    jobject assetManager;
-    jobject inputStream;
-    jclass channels;
-    jobject readableByteChannel;
-    jstring fileNameJString;
-    jobject fd;
-    jclass fdCls;
-    jfieldID descriptor;
+    jobject javaAssetManager;
 
-    JNIEnv *env = Android_JNI_GetEnv();
     if (!LocalReferenceHolder_Init(&refs, env)) {
-        goto failure;
+        LocalReferenceHolder_Cleanup(&refs);
+        return;
     }
-
-    fileNameJString = (jstring)ctx->hidden.androidio.fileNameRef;
-    ctx->hidden.androidio.position = 0;
 
     /* context = SDLActivity.getContext(); */
     context = (*env)->CallStaticObjectMethod(env, mActivityClass, midGetContext);
 
-    /* assetManager = context.getAssets(); */
+    /* javaAssetManager = context.getAssets(); */
     mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, context),
             "getAssets", "()Landroid/content/res/AssetManager;");
-    assetManager = (*env)->CallObjectMethod(env, context, mid);
+    javaAssetManager = (*env)->CallObjectMethod(env, context, mid);
 
-    /* First let's try opening the file to obtain an AssetFileDescriptor.
-    * This method reads the files directly from the APKs using standard *nix calls
-    */
-    mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, assetManager), "openFd", "(Ljava/lang/String;)Landroid/content/res/AssetFileDescriptor;");
-    inputStream = (*env)->CallObjectMethod(env, assetManager, mid, fileNameJString);
-    if (Android_JNI_ExceptionOccurred(SDL_TRUE)) {
-        goto fallback;
-    }
+    /**
+     * Given a Dalvik AssetManager object, obtain the corresponding native AAssetManager
+     * object.  Note that the caller is responsible for obtaining and holding a VM reference
+     * to the jobject to prevent its being garbage collected while the native object is
+     * in use.
+     */
+    javaAssetManagerRef = (*env)->NewGlobalRef(env, javaAssetManager);
+    asset_manager = AAssetManager_fromJava(env, javaAssetManagerRef);
 
-    mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, inputStream), "getStartOffset", "()J");
-    ctx->hidden.androidio.offset = (long)(*env)->CallLongMethod(env, inputStream, mid);
-    if (Android_JNI_ExceptionOccurred(SDL_TRUE)) {
-        goto fallback;
-    }
-
-    mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, inputStream), "getDeclaredLength", "()J");
-    ctx->hidden.androidio.size = (long)(*env)->CallLongMethod(env, inputStream, mid);
-    if (Android_JNI_ExceptionOccurred(SDL_TRUE)) {
-        goto fallback;
-    }
-
-    mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, inputStream), "getFileDescriptor", "()Ljava/io/FileDescriptor;");
-    fd = (*env)->CallObjectMethod(env, inputStream, mid);
-    fdCls = (*env)->GetObjectClass(env, fd);
-    descriptor = (*env)->GetFieldID(env, fdCls, "descriptor", "I");
-    ctx->hidden.androidio.fd = (*env)->GetIntField(env, fd, descriptor);
-    ctx->hidden.androidio.assetFileDescriptorRef = (*env)->NewGlobalRef(env, inputStream);
-
-    /* Seek to the correct offset in the file. */
-    lseek(ctx->hidden.androidio.fd, (off_t)ctx->hidden.androidio.offset, SEEK_SET);
-
-    if (0) {
-fallback:
-        /* Disabled log message because of spam on the Nexus 7 */
-        /* __android_log_print(ANDROID_LOG_DEBUG, "SDL", "Falling back to legacy InputStream method for opening file"); */
-
-        /* Try the old method using InputStream */
-        ctx->hidden.androidio.assetFileDescriptorRef = NULL;
-
-        /* inputStream = assetManager.open(<filename>); */
-        mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, assetManager),
-                "open", "(Ljava/lang/String;I)Ljava/io/InputStream;");
-        inputStream = (*env)->CallObjectMethod(env, assetManager, mid, fileNameJString, 1 /* ACCESS_RANDOM */);
-        if (Android_JNI_ExceptionOccurred(SDL_FALSE)) {
-            /* Try fallback to APK expansion files */
-            inputStream = (*env)->CallStaticObjectMethod(env, mActivityClass, midOpenAPKExpansionInputStream, fileNameJString);
-
-            /* Exception is checked first because it always needs to be cleared.
-             * If no exception occurred then the last SDL error message is kept.
-             */
-            if (Android_JNI_ExceptionOccurred(SDL_FALSE) || !inputStream) {
-                goto failure;
-            }
-        }
-
-        ctx->hidden.androidio.inputStreamRef = (*env)->NewGlobalRef(env, inputStream);
-
-        /* Despite all the visible documentation on [Asset]InputStream claiming
-         * that the .available() method is not guaranteed to return the entire file
-         * size, comments in <sdk>/samples/<ver>/ApiDemos/src/com/example/ ...
-         * android/apis/content/ReadAsset.java imply that Android's
-         * AssetInputStream.available() /will/ always return the total file size
-        */
-
-        /* size = inputStream.available(); */
-        mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, inputStream),
-                "available", "()I");
-        ctx->hidden.androidio.size = (long)(*env)->CallIntMethod(env, inputStream, mid);
-        if (Android_JNI_ExceptionOccurred(SDL_FALSE)) {
-            goto failure;
-        }
-
-        /* readableByteChannel = Channels.newChannel(inputStream); */
-        channels = (*env)->FindClass(env, "java/nio/channels/Channels");
-        mid = (*env)->GetStaticMethodID(env, channels,
-                "newChannel",
-                "(Ljava/io/InputStream;)Ljava/nio/channels/ReadableByteChannel;");
-        readableByteChannel = (*env)->CallStaticObjectMethod(
-                env, channels, mid, inputStream);
-        if (Android_JNI_ExceptionOccurred(SDL_FALSE)) {
-            goto failure;
-        }
-
-        ctx->hidden.androidio.readableByteChannelRef =
-            (*env)->NewGlobalRef(env, readableByteChannel);
-
-        /* Store .read id for reading purposes */
-        mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, readableByteChannel),
-                "read", "(Ljava/nio/ByteBuffer;)I");
-        ctx->hidden.androidio.readMethod = mid;
-    }
-
-    if (0) {
-failure:
-        result = -1;
-
-        (*env)->DeleteGlobalRef(env, (jobject)ctx->hidden.androidio.fileNameRef);
-
-        if(ctx->hidden.androidio.inputStreamRef != NULL) {
-            (*env)->DeleteGlobalRef(env, (jobject)ctx->hidden.androidio.inputStreamRef);
-        }
-
-        if(ctx->hidden.androidio.readableByteChannelRef != NULL) {
-            (*env)->DeleteGlobalRef(env, (jobject)ctx->hidden.androidio.readableByteChannelRef);
-        }
-
-        if(ctx->hidden.androidio.assetFileDescriptorRef != NULL) {
-            (*env)->DeleteGlobalRef(env, (jobject)ctx->hidden.androidio.assetFileDescriptorRef);
-        }
-
+    if (asset_manager == NULL) {
+        (*env)->DeleteGlobalRef(env, javaAssetManagerRef);
+        Android_JNI_ExceptionOccurred(SDL_TRUE);
     }
 
     LocalReferenceHolder_Cleanup(&refs);
-    return result;
+}
+
+static void Internal_Android_Destroy_AssetManager() {
+    JNIEnv *env = Android_JNI_GetEnv();
+
+    if (asset_manager) {
+        (*env)->DeleteGlobalRef(env, javaAssetManagerRef);
+        asset_manager = NULL;
+    }
 }
 
 int Android_JNI_FileOpen(SDL_RWops *ctx,
         const char *fileName, const char *mode)
 {
-    struct LocalReferenceHolder refs = LocalReferenceHolder_Setup(__FUNCTION__);
-    JNIEnv *env = Android_JNI_GetEnv();
-    int retval;
-    jstring fileNameJString;
+    AAsset *asset = NULL;
+    ctx->hidden.androidio.asset = NULL;
 
-    if (!LocalReferenceHolder_Init(&refs, env)) {
-        LocalReferenceHolder_Cleanup(&refs);
+    if (asset_manager == NULL) {
+        Internal_Android_Create_AssetManager();
+    }
+
+    if (asset_manager == NULL) {
         return -1;
     }
 
-    if (!ctx) {
-        LocalReferenceHolder_Cleanup(&refs);
+    asset = AAssetManager_open(asset_manager, fileName, AASSET_MODE_UNKNOWN);
+    if (asset == NULL) {
         return -1;
     }
 
-    fileNameJString = (*env)->NewStringUTF(env, fileName);
-    ctx->hidden.androidio.fileNameRef = (*env)->NewGlobalRef(env, fileNameJString);
-    ctx->hidden.androidio.inputStreamRef = NULL;
-    ctx->hidden.androidio.readableByteChannelRef = NULL;
-    ctx->hidden.androidio.readMethod = NULL;
-    ctx->hidden.androidio.assetFileDescriptorRef = NULL;
 
-    retval = Internal_Android_JNI_FileOpen(ctx);
-    LocalReferenceHolder_Cleanup(&refs);
-    return retval;
+    ctx->hidden.androidio.asset = (void*) asset;
+    return 0;
 }
 
-size_t Android_JNI_FileRead(SDL_RWops *ctx, void *buffer,
+size_t Android_JNI_FileRead(SDL_RWops* ctx, void* buffer,
         size_t size, size_t maxnum)
 {
-    struct LocalReferenceHolder refs = LocalReferenceHolder_Setup(__FUNCTION__);
+    size_t result;
+    AAsset *asset = (AAsset*) ctx->hidden.androidio.asset;
+    result = AAsset_read(asset, buffer, size * maxnum);
 
-    if (ctx->hidden.androidio.assetFileDescriptorRef) {
-        size_t bytesMax = size * maxnum;
-        size_t result;
-        if (ctx->hidden.androidio.size != -1 /* UNKNOWN_LENGTH */ && ctx->hidden.androidio.position + bytesMax > ctx->hidden.androidio.size) {
-            bytesMax = ctx->hidden.androidio.size - ctx->hidden.androidio.position;
-        }
-        result = read(ctx->hidden.androidio.fd, buffer, bytesMax );
-        if (result > 0) {
-            ctx->hidden.androidio.position += result;
-            LocalReferenceHolder_Cleanup(&refs);
-            return result / size;
-        }
-        LocalReferenceHolder_Cleanup(&refs);
-        return 0;
+    if (result > 0) {
+        /* Number of chuncks */
+        return (result / size);
     } else {
-        jlong bytesRemaining = (jlong) (size * maxnum);
-        jlong bytesMax = (jlong) (ctx->hidden.androidio.size -  ctx->hidden.androidio.position);
-        int bytesRead = 0;
-        JNIEnv *env;
-        jobject readableByteChannel;
-        jmethodID readMethod;
-        jobject byteBuffer;
-
-        /* Don't read more bytes than those that remain in the file, otherwise we get an exception */
-        if (bytesRemaining >  bytesMax) bytesRemaining = bytesMax;
-
-        env = Android_JNI_GetEnv();
-        if (!LocalReferenceHolder_Init(&refs, env)) {
-            LocalReferenceHolder_Cleanup(&refs);
-            return 0;
-        }
-
-        readableByteChannel = (jobject)ctx->hidden.androidio.readableByteChannelRef;
-        readMethod = (jmethodID)ctx->hidden.androidio.readMethod;
-        byteBuffer = (*env)->NewDirectByteBuffer(env, buffer, bytesRemaining);
-
-        while (bytesRemaining > 0) {
-            /* result = readableByteChannel.read(...); */
-            int result = (*env)->CallIntMethod(env, readableByteChannel, readMethod, byteBuffer);
-
-            if (Android_JNI_ExceptionOccurred(SDL_FALSE)) {
-                LocalReferenceHolder_Cleanup(&refs);
-                return 0;
-            }
-
-            if (result < 0) {
-                break;
-            }
-
-            bytesRemaining -= result;
-            bytesRead += result;
-            ctx->hidden.androidio.position += result;
-        }
-        LocalReferenceHolder_Cleanup(&refs);
-        return bytesRead / size;
+        /* Error or EOF */
+        return result;
     }
 }
 
@@ -2046,148 +1894,27 @@ size_t Android_JNI_FileWrite(SDL_RWops *ctx, const void *buffer,
     return 0;
 }
 
-static int Internal_Android_JNI_FileClose(SDL_RWops *ctx, SDL_bool release)
+Sint64 Android_JNI_FileSize(SDL_RWops *ctx)
 {
-    struct LocalReferenceHolder refs = LocalReferenceHolder_Setup(__FUNCTION__);
-
-    int result = 0;
-    JNIEnv *env = Android_JNI_GetEnv();
-
-    if (!LocalReferenceHolder_Init(&refs, env)) {
-        LocalReferenceHolder_Cleanup(&refs);
-        return SDL_SetError("Failed to allocate enough JVM local references");
-    }
-
-    if (ctx) {
-        if (release) {
-            (*env)->DeleteGlobalRef(env, (jobject)ctx->hidden.androidio.fileNameRef);
-        }
-
-        if (ctx->hidden.androidio.assetFileDescriptorRef) {
-            jobject inputStream = (jobject)ctx->hidden.androidio.assetFileDescriptorRef;
-            jmethodID mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, inputStream),
-                    "close", "()V");
-            (*env)->CallVoidMethod(env, inputStream, mid);
-            (*env)->DeleteGlobalRef(env, (jobject)ctx->hidden.androidio.assetFileDescriptorRef);
-            if (Android_JNI_ExceptionOccurred(SDL_FALSE)) {
-                result = -1;
-            }
-        }
-        else {
-            jobject inputStream = (jobject)ctx->hidden.androidio.inputStreamRef;
-
-            /* inputStream.close(); */
-            jmethodID mid = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, inputStream),
-                    "close", "()V");
-            (*env)->CallVoidMethod(env, inputStream, mid);
-            (*env)->DeleteGlobalRef(env, (jobject)ctx->hidden.androidio.inputStreamRef);
-            (*env)->DeleteGlobalRef(env, (jobject)ctx->hidden.androidio.readableByteChannelRef);
-            if (Android_JNI_ExceptionOccurred(SDL_FALSE)) {
-                result = -1;
-            }
-        }
-
-        if (release) {
-            SDL_FreeRW(ctx);
-        }
-    }
-
-    LocalReferenceHolder_Cleanup(&refs);
+    off64_t result;
+    AAsset *asset = (AAsset*) ctx->hidden.androidio.asset;
+    result = AAsset_getLength64(asset);
     return result;
 }
 
-
-Sint64 Android_JNI_FileSize(SDL_RWops *ctx)
+Sint64 Android_JNI_FileSeek(SDL_RWops* ctx, Sint64 offset, int whence)
 {
-    return ctx->hidden.androidio.size;
-}
-
-Sint64 Android_JNI_FileSeek(SDL_RWops *ctx, Sint64 offset, int whence)
-{
-    if (ctx->hidden.androidio.assetFileDescriptorRef) {
-        off_t ret;
-        switch (whence) {
-            case RW_SEEK_SET:
-                if (ctx->hidden.androidio.size != -1 /* UNKNOWN_LENGTH */ && offset > ctx->hidden.androidio.size) offset = ctx->hidden.androidio.size;
-                offset += ctx->hidden.androidio.offset;
-                break;
-            case RW_SEEK_CUR:
-                offset += ctx->hidden.androidio.position;
-                if (ctx->hidden.androidio.size != -1 /* UNKNOWN_LENGTH */ && offset > ctx->hidden.androidio.size) offset = ctx->hidden.androidio.size;
-                offset += ctx->hidden.androidio.offset;
-                break;
-            case RW_SEEK_END:
-                offset = ctx->hidden.androidio.offset + ctx->hidden.androidio.size + offset;
-                break;
-            default:
-                return SDL_SetError("Unknown value for 'whence'");
-        }
-
-        ret = lseek(ctx->hidden.androidio.fd, (off_t)offset, SEEK_SET);
-        if (ret == -1) return -1;
-        ctx->hidden.androidio.position = ret - ctx->hidden.androidio.offset;
-    } else {
-        Sint64 newPosition;
-        Sint64 movement;
-
-        switch (whence) {
-            case RW_SEEK_SET:
-                newPosition = offset;
-                break;
-            case RW_SEEK_CUR:
-                newPosition = ctx->hidden.androidio.position + offset;
-                break;
-            case RW_SEEK_END:
-                newPosition = ctx->hidden.androidio.size + offset;
-                break;
-            default:
-                return SDL_SetError("Unknown value for 'whence'");
-        }
-
-        /* Validate the new position */
-        if (newPosition < 0) {
-            return SDL_Error(SDL_EFSEEK);
-        }
-        if (newPosition > ctx->hidden.androidio.size) {
-            newPosition = ctx->hidden.androidio.size;
-        }
-
-        movement = newPosition - ctx->hidden.androidio.position;
-        if (movement > 0) {
-            unsigned char buffer[4096];
-
-            /* The easy case where we're seeking forwards */
-            while (movement > 0) {
-                Sint64 amount = sizeof (buffer);
-                size_t result;
-                if (amount > movement) {
-                    amount = movement;
-                }
-                result = Android_JNI_FileRead(ctx, buffer, 1, (size_t)amount);
-                if (result <= 0) {
-                    /* Failed to read/skip the required amount, so fail */
-                    return -1;
-                }
-
-                movement -= result;
-            }
-
-        } else if (movement < 0) {
-            /* We can't seek backwards so we have to reopen the file and seek */
-            /* forwards which obviously isn't very efficient */
-            Internal_Android_JNI_FileClose(ctx, SDL_FALSE);
-            Internal_Android_JNI_FileOpen(ctx);
-            Android_JNI_FileSeek(ctx, newPosition, RW_SEEK_SET);
-        }
-    }
-
-    return ctx->hidden.androidio.position;
-
+    off64_t result;
+    AAsset *asset = (AAsset*) ctx->hidden.androidio.asset;
+    result = AAsset_seek64(asset, offset, whence);
+    return result;
 }
 
 int Android_JNI_FileClose(SDL_RWops *ctx)
 {
-    return Internal_Android_JNI_FileClose(ctx, SDL_TRUE);
+    AAsset *asset = (AAsset*) ctx->hidden.androidio.asset;
+    AAsset_close(asset);
+    return 0;
 }
 
 int Android_JNI_SetClipboardText(const char *text)
@@ -2378,6 +2105,15 @@ void Android_JNI_HapticStop(int device_id)
 
 /* See SDLActivity.java for constants. */
 #define COMMAND_SET_KEEP_SCREEN_ON    5
+
+
+int SDL_AndroidSendMessage(Uint32 command, int param)
+{
+    if (command >= 0x8000) {
+        return Android_JNI_SendMessage(command, param);
+    }
+    return -1;
+}
 
 /* sends message to be handled on the UI event dispatch thread */
 int Android_JNI_SendMessage(int command, int param)
@@ -2717,6 +2453,16 @@ const char * SDL_AndroidGetExternalStoragePath(void)
     return s_AndroidExternalFilesPath;
 }
 
+SDL_bool SDL_AndroidRequestPermission(const char *permission)
+{
+    return Android_JNI_RequestPermission(permission);
+}
+
+int SDL_AndroidShowToast(const char* message, int duration, int gravity, int xOffset, int yOffset)
+{
+    return Android_JNI_ShowToast(message, duration, gravity, xOffset, yOffset);
+}
+
 void Android_JNI_GetManifestEnvironmentVariables(void)
 {
     if (!mActivityClass || !midGetManifestEnvironmentVariables) {
@@ -2749,6 +2495,12 @@ int Android_JNI_CreateCustomCursor(SDL_Surface *surface, int hot_x, int hot_y)
     return custom_cursor;
 }
 
+void Android_JNI_DestroyCustomCursor(int cursorID)
+{
+    JNIEnv *env = Android_JNI_GetEnv();
+    (*env)->CallStaticVoidMethod(env, mActivityClass, midDestroyCustomCursor, cursorID);
+    return;
+}
 
 SDL_bool Android_JNI_SetCustomCursor(int cursorID)
 {
@@ -2777,23 +2529,103 @@ SDL_bool Android_JNI_SetRelativeMouseEnabled(SDL_bool enabled)
 SDL_bool Android_JNI_RequestPermission(const char *permission)
 {
     JNIEnv *env = Android_JNI_GetEnv();
-	const int requestCode = 1;
+    jstring jpermission;
+    const int requestCode = 1;
 
-	/* Wait for any pending request on another thread */
-	while (SDL_AtomicGet(&bPermissionRequestPending) == SDL_TRUE) {
-		SDL_Delay(10);
-	}
-	SDL_AtomicSet(&bPermissionRequestPending, SDL_TRUE);
+    /* Wait for any pending request on another thread */
+    while (SDL_AtomicGet(&bPermissionRequestPending) == SDL_TRUE) {
+        SDL_Delay(10);
+    }
+    SDL_AtomicSet(&bPermissionRequestPending, SDL_TRUE);
 
-    jstring jpermission = (*env)->NewStringUTF(env, permission);
+    jpermission = (*env)->NewStringUTF(env, permission);
     (*env)->CallStaticVoidMethod(env, mActivityClass, midRequestPermission, jpermission, requestCode);
     (*env)->DeleteLocalRef(env, jpermission);
 
-	/* Wait for the request to complete */
-	while (SDL_AtomicGet(&bPermissionRequestPending) == SDL_TRUE) {
-		SDL_Delay(10);
-	}
-	return bPermissionRequestResult;
+    /* Wait for the request to complete */
+    while (SDL_AtomicGet(&bPermissionRequestPending) == SDL_TRUE) {
+        SDL_Delay(10);
+    }
+    return bPermissionRequestResult;
+}
+
+/* Show toast notification */
+int Android_JNI_ShowToast(const char* message, int duration, int gravity, int xOffset, int yOffset)
+{
+    int result = 0;
+    JNIEnv *env = Android_JNI_GetEnv();
+    jstring jmessage = (*env)->NewStringUTF(env, message);
+    result = (*env)->CallStaticIntMethod(env, mActivityClass, midShowToast, jmessage, duration, gravity, xOffset, yOffset);
+    (*env)->DeleteLocalRef(env, jmessage);
+    return result;
+}
+
+int Android_JNI_GetLocale(char *buf, size_t buflen)
+{
+    AConfiguration *cfg;
+
+    SDL_assert(buflen > 6);
+
+    /* Need to re-create the asset manager if locale has changed (SDL_LOCALECHANGED) */
+    Internal_Android_Destroy_AssetManager();
+
+    if (asset_manager == NULL) {
+        Internal_Android_Create_AssetManager();
+    }
+
+    if (asset_manager == NULL) {
+        return -1;
+    }
+
+    cfg = AConfiguration_new();
+    if (cfg == NULL) {
+        return -1;
+    }
+
+    {
+        char language[2] = {};
+        char country[2] = {};
+        size_t id = 0;
+
+        AConfiguration_fromAssetManager(cfg, asset_manager);
+        AConfiguration_getLanguage(cfg, language);
+        AConfiguration_getCountry(cfg, country);
+
+        /* copy language (not null terminated) */
+        if (language[0]) {
+            buf[id++] = language[0];
+            if (language[1]) {
+                buf[id++] = language[1];
+            }
+        }
+
+        buf[id++] = '_';
+
+        /* copy country (not null terminated) */
+        if (country[0]) {
+            buf[id++] = country[0];
+            if (country[1]) {
+                buf[id++] = country[1];
+            }
+        }
+        
+        buf[id++] = '\0';
+        SDL_assert(id <= buflen);
+    }
+
+    AConfiguration_delete(cfg);
+
+    return 0;
+}
+
+int
+Android_JNI_OpenURL(const char *url)
+{
+    JNIEnv *env = Android_JNI_GetEnv();
+    jstring jurl = (*env)->NewStringUTF(env, url);
+    const int ret = (*env)->CallStaticIntMethod(env, mActivityClass, midOpenURL, jurl);
+    (*env)->DeleteLocalRef(env, jurl);
+    return ret;
 }
 
 #endif /* __ANDROID__ */

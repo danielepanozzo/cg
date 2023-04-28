@@ -1,6 +1,6 @@
 /*
  Simple DirectMedia Layer
- Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+ Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
  
  This software is provided 'as-is', without any express or implied
  warranty.  In no event will the authors be held liable for any damages
@@ -22,8 +22,8 @@
 /*
  * @author Mark Callow, www.edgewise-consulting.com.
  *
- * Thanks to Alex Szpakowski, @slime73 on GitHub, for his gist showing
- * how to add a CAMetalLayer backed view.
+ * Thanks to @slime73 on GitHub for their gist showing how to add a CAMetalLayer
+ * backed view.
  */
 
 #ifndef SDL_uikitmetalview_h_
@@ -38,7 +38,6 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
 
-#define METALVIEW_TAG 255
 
 @interface SDL_uikitmetalview : SDL_uikitview
 
@@ -49,8 +48,8 @@
 
 SDL_MetalView UIKit_Metal_CreateView(_THIS, SDL_Window * window);
 void UIKit_Metal_DestroyView(_THIS, SDL_MetalView view);
-
-void UIKit_Metal_GetDrawableSize(SDL_Window * window, int * w, int * h);
+void *UIKit_Metal_GetLayer(_THIS, SDL_MetalView view);
+void UIKit_Metal_GetDrawableSize(_THIS, SDL_Window * window, int * w, int * h);
 
 #endif /* SDL_VIDEO_DRIVER_UIKIT && (SDL_VIDEO_VULKAN || SDL_VIDEO_METAL) */
 

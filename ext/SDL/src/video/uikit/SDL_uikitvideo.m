@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -52,12 +52,6 @@ static void UIKit_VideoQuit(_THIS);
 
 /* DUMMY driver bootstrap functions */
 
-static int
-UIKit_Available(void)
-{
-    return 1;
-}
-
 static void UIKit_DeleteDevice(SDL_VideoDevice * device)
 {
     @autoreleasepool {
@@ -67,7 +61,7 @@ static void UIKit_DeleteDevice(SDL_VideoDevice * device)
 }
 
 static SDL_VideoDevice *
-UIKit_CreateDevice(int devindex)
+UIKit_CreateDevice(void)
 {
     @autoreleasepool {
         SDL_VideoDevice *device;
@@ -99,9 +93,12 @@ UIKit_CreateDevice(int devindex)
         device->RaiseWindow = UIKit_RaiseWindow;
         device->SetWindowBordered = UIKit_SetWindowBordered;
         device->SetWindowFullscreen = UIKit_SetWindowFullscreen;
+        device->SetWindowMouseGrab = UIKit_SetWindowMouseGrab;
         device->DestroyWindow = UIKit_DestroyWindow;
         device->GetWindowWMInfo = UIKit_GetWindowWMInfo;
         device->GetDisplayUsableBounds = UIKit_GetDisplayUsableBounds;
+        device->GetDisplayDPI = UIKit_GetDisplayDPI;
+        device->GetWindowSizeInPixels = UIKit_GetWindowSizeInPixels;
 
 #if SDL_IPHONE_KEYBOARD
         device->HasScreenKeyboardSupport = UIKit_HasScreenKeyboardSupport;
@@ -139,6 +136,8 @@ UIKit_CreateDevice(int devindex)
 #if SDL_VIDEO_METAL
         device->Metal_CreateView = UIKit_Metal_CreateView;
         device->Metal_DestroyView = UIKit_Metal_DestroyView;
+        device->Metal_GetLayer = UIKit_Metal_GetLayer;
+        device->Metal_GetDrawableSize = UIKit_Metal_GetDrawableSize;
 #endif
 
         device->gl_config.accelerated = 1;
@@ -149,7 +148,7 @@ UIKit_CreateDevice(int devindex)
 
 VideoBootStrap UIKIT_bootstrap = {
     UIKITVID_DRIVER_NAME, "SDL UIKit video driver",
-    UIKit_Available, UIKit_CreateDevice
+    UIKit_CreateDevice
 };
 
 
@@ -161,12 +160,19 @@ UIKit_VideoInit(_THIS)
     if (UIKit_InitModes(_this) < 0) {
         return -1;
     }
+
+    SDL_InitGCKeyboard();
+    SDL_InitGCMouse();
+
     return 0;
 }
 
 void
 UIKit_VideoQuit(_THIS)
 {
+    SDL_QuitGCKeyboard();
+    SDL_QuitGCMouse();
+
     UIKit_QuitModes(_this);
 }
 
@@ -204,15 +210,6 @@ UIKit_ComputeViewFrame(SDL_Window *window, UIScreen *screen)
         frame = data.uiwindow.bounds;
     }
 
-#if !TARGET_OS_TV && (__IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0)
-    BOOL hasiOS7 = UIKit_IsSystemVersionAtLeast(7.0);
-
-    /* The view should always show behind the status bar in iOS 7+. */
-    if (!hasiOS7 && !(window->flags & (SDL_WINDOW_BORDERLESS|SDL_WINDOW_FULLSCREEN))) {
-        frame = screen.applicationFrame;
-    }
-#endif
-
 #if !TARGET_OS_TV
     /* iOS 10 seems to have a bug where, in certain conditions, putting the
      * device to sleep with the a landscape-only app open, re-orienting the
@@ -222,18 +219,16 @@ UIKit_ComputeViewFrame(SDL_Window *window, UIScreen *screen)
      * https://bugzilla.libsdl.org/show_bug.cgi?id=3505
      * https://bugzilla.libsdl.org/show_bug.cgi?id=3465
      * https://forums.developer.apple.com/thread/65337 */
-    if (UIKit_IsSystemVersionAtLeast(8.0)) {
-        UIInterfaceOrientation orient = [UIApplication sharedApplication].statusBarOrientation;
-        BOOL landscape = UIInterfaceOrientationIsLandscape(orient);
-        BOOL fullscreen = CGRectEqualToRect(screen.bounds, frame);
+    UIInterfaceOrientation orient = [UIApplication sharedApplication].statusBarOrientation;
+    BOOL landscape = UIInterfaceOrientationIsLandscape(orient);
+    BOOL fullscreen = CGRectEqualToRect(screen.bounds, frame);
 
-        /* The orientation flip doesn't make sense when the window is smaller
-         * than the screen (iPad Split View, for example). */
-        if (fullscreen && (landscape != (frame.size.width > frame.size.height))) {
-            float height = frame.size.width;
-            frame.size.width = frame.size.height;
-            frame.size.height = height;
-        }
+    /* The orientation flip doesn't make sense when the window is smaller
+     * than the screen (iPad Split View, for example). */
+    if (fullscreen && (landscape != (frame.size.width > frame.size.height))) {
+        float height = frame.size.width;
+        frame.size.width = frame.size.height;
+        frame.size.height = height;
     }
 #endif
 
@@ -273,9 +268,17 @@ UIKit_ForceUpdateHomeIndicator()
  */
 
 #if !defined(SDL_VIDEO_DRIVER_COCOA)
-void SDL_NSLog(const char *text)
+void SDL_NSLog(const char *prefix, const char *text)
 {
-    NSLog(@"%s", text);
+    @autoreleasepool {
+        NSString *nsText = [NSString stringWithUTF8String:text];
+        if (prefix) {
+            NSString *nsPrefix = [NSString stringWithUTF8String:prefix];
+            NSLog(@"%@: %@", nsPrefix, nsText);
+        } else {
+            NSLog(@"%@", nsText);
+        }
+    }
 }
 #endif /* SDL_VIDEO_DRIVER_COCOA */
 

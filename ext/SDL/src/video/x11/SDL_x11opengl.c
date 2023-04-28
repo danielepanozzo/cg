@@ -1,6 +1,7 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 2021 NVIDIA Corporation
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,7 +24,6 @@
 #if SDL_VIDEO_DRIVER_X11
 
 #include "SDL_x11video.h"
-#include "SDL_assert.h"
 #include "SDL_hints.h"
 
 /* GLX implementation of SDL OpenGL support */
@@ -32,8 +32,12 @@
 #include "SDL_loadso.h"
 #include "SDL_x11opengles.h"
 
-#if defined(__IRIX__)
-/* IRIX doesn't have a GL library versioning system */
+#if defined(__IRIX__) || defined(__NetBSD__) || defined(__OpenBSD__)
+/*
+ * IRIX doesn't have a GL library versioning system.
+ * NetBSD and OpenBSD have different GL library versions depending on how
+ * the library was installed.
+ */
 #define DEFAULT_OPENGL  "libGL.so"
 #elif defined(__MACOSX__)
 #define DEFAULT_OPENGL  "/opt/X11/lib/libGL.1.dylib"
@@ -114,6 +118,16 @@ typedef GLXContext(*PFNGLXCREATECONTEXTATTRIBSARBPROC) (Display * dpy,
 #endif
 #endif
 
+#ifndef GLX_ARB_fbconfig_float
+#define GLX_ARB_fbconfig_float
+#ifndef GLX_RGBA_FLOAT_TYPE_ARB
+#define GLX_RGBA_FLOAT_TYPE_ARB                         0x20B9
+#endif
+#ifndef GLX_RGBA_FLOAT_BIT_ARB
+#define GLX_RGBA_FLOAT_BIT_ARB                         0x00000004
+#endif
+#endif
+
 #ifndef GLX_ARB_create_context_no_error
 #define GLX_ARB_create_context_no_error
 #ifndef GLX_CONTEXT_OPENGL_NO_ERROR_ARB
@@ -138,7 +152,7 @@ typedef GLXContext(*PFNGLXCREATECONTEXTATTRIBSARBPROC) (Display * dpy,
 #endif
 
 #define OPENGL_REQUIRES_DLOPEN
-#if defined(OPENGL_REQUIRES_DLOPEN) && defined(SDL_LOADSO_DLOPEN)
+#if defined(OPENGL_REQUIRES_DLOPEN) && defined(HAVE_DLOPEN)
 #include <dlfcn.h>
 #define GL_LoadObject(X)    dlopen(X, (RTLD_NOW|RTLD_GLOBAL))
 #define GL_LoadFunction     dlsym
@@ -170,7 +184,7 @@ X11_GL_LoadLibrary(_THIS, const char *path)
     }
     _this->gl_config.dll_handle = GL_LoadObject(path);
     if (!_this->gl_config.dll_handle) {
-#if defined(OPENGL_REQUIRES_DLOPEN) && defined(SDL_LOADSO_DLOPEN)
+#if defined(OPENGL_REQUIRES_DLOPEN) && defined(HAVE_DLOPEN)
         SDL_SetError("Failed loading %s: %s", path, dlerror());
 #endif
         return -1;
@@ -243,11 +257,6 @@ X11_GL_LoadLibrary(_THIS, const char *path)
         X11_GL_UseEGL(_this) ) {
 #if SDL_VIDEO_OPENGL_EGL
         X11_GL_UnloadLibrary(_this);
-        /* Better avoid conflicts! */
-        if (_this->gl_config.dll_handle != NULL ) {
-            GL_UnloadObject(_this->gl_config.dll_handle);
-            _this->gl_config.dll_handle = NULL;
-        }
         _this->GL_LoadLibrary = X11_GLES_LoadLibrary;
         _this->GL_GetProcAddress = X11_GLES_GetProcAddress;
         _this->GL_UnloadLibrary = X11_GLES_UnloadLibrary;
@@ -417,6 +426,9 @@ X11_GL_InitExtensions(_THIS)
         _this->gl_data->glXChooseFBConfig =
             (GLXFBConfig *(*)(Display *, int, const int *, int *))
                 X11_GL_GetProcAddress(_this, "glXChooseFBConfig");
+        _this->gl_data->glXGetVisualFromFBConfig =
+            (XVisualInfo *(*)(Display *, GLXFBConfig))
+                X11_GL_GetProcAddress(_this, "glXGetVisualFromFBConfig");
     }
 
     /* Check for GLX_EXT_visual_rating */
@@ -490,7 +502,11 @@ X11_GL_GetAttributes(_THIS, Display * display, int screen, int * attribs, int si
     /* Setup our GLX attributes according to the gl_config. */
     if( for_FBConfig ) {
         attribs[i++] = GLX_RENDER_TYPE;
-        attribs[i++] = GLX_RGBA_BIT;
+        if (_this->gl_config.floatbuffers) {
+            attribs[i++] = GLX_RGBA_FLOAT_BIT_ARB;
+        } else {
+            attribs[i++] = GLX_RGBA_BIT;
+        }
     } else {
         attribs[i++] = GLX_RGBA;
     }
@@ -558,6 +574,10 @@ X11_GL_GetAttributes(_THIS, Display * display, int screen, int * attribs, int si
         attribs[i++] = _this->gl_config.multisamplesamples;
     }
 
+    if (_this->gl_config.floatbuffers) {
+        attribs[i++] = GLX_RGBA_FLOAT_TYPE_ARB;
+    }
+
     if (_this->gl_config.framebuffer_srgb_capable) {
         attribs[i++] = GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB;
         attribs[i++] = True;  /* always needed, for_FBConfig or not! */
@@ -595,7 +615,7 @@ X11_GL_GetVisual(_THIS, Display * display, int screen)
 {
     /* 64 seems nice. */
     int attribs[64];
-    XVisualInfo *vinfo;
+    XVisualInfo *vinfo = NULL;
     int *pvistypeattr = NULL;
 
     if (!_this->gl_data) {
@@ -603,12 +623,33 @@ X11_GL_GetVisual(_THIS, Display * display, int screen)
         return NULL;
     }
 
-    X11_GL_GetAttributes(_this, display, screen, attribs, 64, SDL_FALSE, &pvistypeattr);
-    vinfo = _this->gl_data->glXChooseVisual(display, screen, attribs);
+    if (_this->gl_data->glXChooseFBConfig &&
+        _this->gl_data->glXGetVisualFromFBConfig) {
+        GLXFBConfig *framebuffer_config = NULL;
+        int fbcount = 0;
 
-    if (!vinfo && (pvistypeattr != NULL)) {
-        *pvistypeattr = None;
+        X11_GL_GetAttributes(_this, display, screen, attribs, 64, SDL_TRUE, &pvistypeattr);
+        framebuffer_config = _this->gl_data->glXChooseFBConfig(display, screen, attribs, &fbcount);
+        if (!framebuffer_config && (pvistypeattr != NULL)) {
+            *pvistypeattr = None;
+            framebuffer_config = _this->gl_data->glXChooseFBConfig(display, screen, attribs, &fbcount);
+        }
+
+        if (framebuffer_config) {
+            vinfo = _this->gl_data->glXGetVisualFromFBConfig(display, framebuffer_config[0]);
+        }
+
+        X11_XFree(framebuffer_config);
+    }
+
+    if (!vinfo) {
+        X11_GL_GetAttributes(_this, display, screen, attribs, 64, SDL_FALSE, &pvistypeattr);
         vinfo = _this->gl_data->glXChooseVisual(display, screen, attribs);
+
+        if (!vinfo && (pvistypeattr != NULL)) {
+            *pvistypeattr = None;
+            vinfo = _this->gl_data->glXChooseVisual(display, screen, attribs);
+        }
     }
 
     if (!vinfo) {
