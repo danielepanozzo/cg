@@ -19,7 +19,7 @@ URL: [http://cs.nyu.edu/~panozzo/](http://cs.nyu.edu/~panozzo/)
 [jd4705@nyu.edu ](mailto:jd4705@nyu.edu )
 
 Office Hours (starting from February 2nd): 
-* **Mondays**  Arvi 1-2PM, 60 5th Ave, 506
+* **Mondays**  Arvi 1-2PM, 60 5th Ave, 406
 * **Tuesdays** Arvi 3-4PM, 60 5th Ave, 502
 * **Wednesdays** Jiacheng 2-3PM, 60 5th Ave, 502 
 * **Thursdays** Daniele 3-4PM, 60 5th Ave, 504  
