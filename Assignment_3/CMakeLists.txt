@@ -1,10 +1,5 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 project(assignment3)
-
-if(NOT CMAKE_BUILD_TYPE)
-	message(STATUS "No build type selected, default to Release")
-	set(CMAKE_BUILD_TYPE "Release")
-endif()
 
 # Project sources
 add_executable(${PROJECT_NAME}
